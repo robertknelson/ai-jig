@@ -4,6 +4,7 @@ summary: "C-REXX jig built and tested — awaiting first real run at work"
 resume: "python -m http.server 4790, then open http://localhost:4790/jigs/c-rexx.html (or just open the file)"
 health: green
 links:
+  - { label: "GitHub (private)", url: "https://github.com/robertknelson/ai-jig" }
   - { label: "C-REXX (local)", url: "http://localhost:4790/jigs/c-rexx.html" }
 phase_suggestion: execution   # recommendation only (human ratifies the real phase):
                       #   discovery | planning | execution | monitoring | closure
