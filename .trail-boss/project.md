@@ -33,6 +33,7 @@ relates: []
 - Tests: node --test tests/ (schema drift, catalog, sample citations), 6/6 passing. Verified live in Chrome (desktop).
 - Added a 'How this was built' footer panel: a how-to for building jigs with an AI agent, plus every build prompt verbatim — a teaching aid for a mainframer colleague.
 - Added 'Download report': saves the rendered analysis report as a standalone HTML file.
+- Pushed to github.com/robertknelson/ai-jig (private: inload/assay.html carries the assay prompts).
 - Robert's rulings: name C-REXX; one jig for both languages; no redaction variant (work AI is org-private); JCL jig later; desktop only.
 
 ### 2026-10-30
