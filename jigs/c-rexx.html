@@ -1,0 +1,3419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>C-REXX — mainframe code reading</title>
+<style>
+/* ================================================================
+   C-REXX — a self-contained COBOL / REXX reading companion.
+   One file, no server, no build, no network. System fonts only.
+   Base shell styles come from assay (inload/assay.html).
+   Indicator law: status color never appears without a text label.
+   Gold is reserved for the wordmark and the ★ marks.
+   ================================================================ */
+
+:root {
+  --bench: #f2f4f6;
+  --card: #ffffff;
+  --well: #eef1f4;
+  --ink: #1f242b;
+  --ink-soft: #5c6572;
+  --ink-faint: #8b93a0;
+  --line: #d9dee5;
+  --line-soft: #e7ebef;
+
+  --gold: #8a6d14;
+  --gold-tint: rgba(138, 109, 20, 0.12);
+
+  --good: #1a7f37;
+  --good-tint: rgba(26, 127, 55, 0.10);
+  --warn: #9a6700;
+  --warn-tint: rgba(154, 103, 0, 0.10);
+  --bad: #b42318;
+  --bad-tint: rgba(180, 35, 24, 0.08);
+  --info: #0969da;
+  --info-tint: rgba(9, 105, 218, 0.08);
+  --slate: #5f6b7a;
+  --slate-tint: rgba(95, 107, 122, 0.10);
+
+  --serif: Cambria, Georgia, 'Times New Roman', serif;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: Consolas, 'Cascadia Mono', 'Courier New', monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+:root[data-theme="dark"] {
+  --bench: #14171c;
+  --card: #1c2128;
+  --well: #171b21;
+  --ink: #e7eaee;
+  --ink-soft: #a0a8b4;
+  --ink-faint: #79818d;
+  --line: #343c46;
+  --line-soft: #2a313a;
+
+  --gold: #d9b545;
+  --gold-tint: rgba(217, 181, 69, 0.14);
+
+  --good: #46b95e;
+  --good-tint: rgba(70, 185, 94, 0.14);
+  --warn: #d29922;
+  --warn-tint: rgba(210, 153, 34, 0.14);
+  --bad: #f0655c;
+  --bad-tint: rgba(240, 101, 92, 0.12);
+  --info: #58a6ff;
+  --info-tint: rgba(88, 166, 255, 0.12);
+  --slate: #93a0af;
+  --slate-tint: rgba(147, 160, 175, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--bench);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ---------------- header ---------------- */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.wordmark-gem {
+  color: var(--gold);
+  font-size: 13px;
+  transform: translateY(-1px);
+}
+.wordmark-name {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+.wordmark-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px;
+}
+.mode-tab {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mode-tab.is-active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+}
+
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.theme-toggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+button:focus-visible, a:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
+
+/* ---------------- prepare mode ---------------- */
+
+.prepare {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 24px 80px;
+}
+
+.prepare-lede {
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+.prepare-sub {
+  color: var(--ink-soft);
+  margin: 0 0 36px;
+  max-width: 56ch;
+}
+.prepare-sub .sample-link {
+  color: var(--info);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.step-num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+}
+.step-title {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  margin: 5px 0 6px;
+}
+.step-body { color: var(--ink-soft); margin: 0 0 12px; max-width: 58ch; }
+
+.variant-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.variant-card {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.variant-card input { margin-right: 7px; accent-color: var(--info); }
+.variant-card.is-picked { border-color: var(--info); background: var(--info-tint); }
+.variant-name { font-weight: 600; font-size: 14px; }
+.variant-desc { display: block; color: var(--ink-soft); font-size: 13px; margin-top: 3px; }
+
+.attest {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--warn-tint);
+  font-size: 13.5px;
+}
+.attest.is-shown { display: flex; }
+.attest input { margin-top: 3px; accent-color: var(--warn); }
+
+textarea {
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+textarea::placeholder { color: var(--ink-faint); }
+
+.step-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 9px 18px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-faint); }
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bench);
+}
+.btn-primary:hover { opacity: 0.88; border-color: var(--ink); }
+.btn-quiet {
+  border: none;
+  background: none;
+  color: var(--info);
+  padding: 9px 4px;
+  font-weight: 500;
+}
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+.hint { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+.hint.is-ok { color: var(--good); }
+.hint.is-bad { color: var(--bad); }
+
+.paste-error {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bad-tint);
+  color: var(--bad);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* ---------------- report layout ---------------- */
+
+.report {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 880px);
+  gap: 40px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px 90px;
+}
+
+.rail {
+  position: sticky;
+  top: 78px;
+  align-self: start;
+  font-size: 13px;
+}
+.rail-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  margin: 0 0 10px 12px;
+  text-transform: uppercase;
+}
+.rail a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.rail a:hover { color: var(--ink); background: var(--well); }
+.rail a.is-current {
+  color: var(--ink);
+  border-left-color: var(--ink);
+  background: var(--well);
+}
+.rail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--slate);
+}
+.rail-dot.dot-good { background: var(--good); }
+.rail-dot.dot-warn { background: var(--warn); }
+.rail-dot.dot-bad  { background: var(--bad); }
+.rail-dot.dot-info { background: var(--info); }
+.rail-dot.dot-gold { background: var(--gold); }
+.rail-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.rail-tools { margin-top: 22px; padding: 0 12px; display: grid; gap: 8px; }
+.rail-tools .btn { width: 100%; font-size: 12.5px; padding: 7px 10px; }
+
+/* ---------------- report content ---------------- */
+
+.sheet { min-width: 0; }
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  margin-bottom: 22px;
+  scroll-margin-top: 84px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+.panel-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.panel-sub { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 18px; }
+
+.not-provided {
+  color: var(--ink-faint);
+  font-style: italic;
+  font-size: 13.5px;
+}
+
+/* hero */
+
+.hero { padding: 30px 34px 28px; }
+.hero-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.hero-id { flex: 1 1 300px; min-width: 0; }
+.specimen-name {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 2px 0 14px;
+  overflow-wrap: break-word;
+}
+
+.stamp {
+  flex: none;
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 12px 18px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px currentColor;
+  transform: rotate(-1.5deg);
+  max-width: 210px;
+  line-height: 1.45;
+}
+.stamp-good { color: var(--good); background: var(--good-tint); }
+.stamp-warn { color: var(--warn); background: var(--warn-tint); }
+.stamp-bad  { color: var(--bad);  background: var(--bad-tint); }
+.stamp-slate{ color: var(--slate);background: var(--slate-tint); }
+
+
+.narration {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.65;
+  margin: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+}
+
+/* chips */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip-good { color: var(--good); background: var(--good-tint); border-color: var(--good); }
+.chip-warn { color: var(--warn); background: var(--warn-tint); border-color: var(--warn); }
+.chip-bad  { color: var(--bad);  background: var(--bad-tint);  border-color: var(--bad); }
+.chip-info { color: var(--info); background: var(--info-tint); border-color: var(--info); }
+.chip-slate{ color: var(--slate);background: var(--slate-tint);border-color: var(--slate); }
+
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  margin: 0 6px 6px 0;
+}
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* generic cards & rows */
+
+.card-grid { display: grid; gap: 14px; }
+
+.mini-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  padding: 16px 18px;
+}
+.mini-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mini-card-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+  margin-right: auto;
+}
+.mini-card p { margin: 0 0 8px; }
+.mini-card p:last-child { margin-bottom: 0; }
+
+.kicker {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: block;
+  margin: 10px 0 3px;
+}
+
+.quote-sig {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.quote-sig::before { content: "\201C"; }
+.quote-sig::after  { content: "\201D"; }
+
+.sig-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.sig-list li {
+  padding: 3px 0 3px 16px;
+  position: relative;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.sig-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.sig-list.list-plus li::before { background: var(--good); }
+.sig-list.list-flag li::before { background: var(--warn); }
+
+.q-block {
+  border-left: 3px solid var(--info);
+  background: var(--info-tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 9px 14px;
+  margin-top: 10px;
+  font-size: 13.5px;
+}
+.q-block .q-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--info);
+  display: block;
+  margin-bottom: 3px;
+}
+.q-block ol { margin: 0; padding-left: 18px; }
+.q-block ol li { margin: 3px 0; }
+.q-block p { margin: 0; }
+
+details.fold { margin-top: 10px; }
+details.fold summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--info);
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+details.fold summary::marker { color: var(--ink-faint); }
+
+/* smells */
+
+.smell-card { border-left: 4px solid var(--slate); }
+.smell-card.sev-high { border-left-color: var(--bad); }
+.smell-card.sev-medium { border-left-color: var(--warn); }
+.smell-card.sev-low { border-left-color: var(--slate); }
+.smell-loc { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--good);
+  font-weight: 600;
+}
+
+/* strengths */
+
+.flag-list { margin: 0 0 4px; padding: 0; list-style: none; }
+.flag-list li {
+  padding: 5px 0 5px 24px;
+  position: relative;
+}
+.flag-list li::before {
+  content: "\2713";
+  position: absolute;
+  left: 2px;
+  color: var(--good);
+  font-weight: 700;
+}
+
+/* report empty state */
+
+.report-empty {
+  max-width: 560px;
+  margin: 90px auto;
+  text-align: center;
+  padding: 0 24px;
+}
+.report-empty h2 { font-family: var(--serif); font-size: 24px; margin: 0 0 10px; }
+.report-empty p { color: var(--ink-soft); margin: 0 0 22px; }
+
+/* footer */
+
+.colophon {
+  border-top: 1px solid var(--line);
+  padding: 18px 28px 26px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* toast */
+
+.toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--ink);
+  color: var(--bench);
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 50;
+}
+.toast.is-shown { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* responsive */
+
+@media (max-width: 900px) {
+  .report { grid-template-columns: 1fr; gap: 0; }
+  .rail { display: none; }
+  .panel { padding: 20px 18px; }
+  .hero { padding: 22px 20px; }
+  .specimen-name { font-size: 27px; }
+  .masthead { padding: 12px 16px; gap: 12px; }
+  .wordmark-tag { display: none; }
+}
+
+/* print: the certificate on paper */
+
+@media print {
+  .masthead, .rail, .colophon, .toast, .btn { display: none !important; }
+  body { background: #fff; color: #111; }
+  .report { display: block; padding: 0; max-width: none; }
+  .panel { border-color: #bbb; break-inside: avoid; box-shadow: none; }
+}
+
+/* ================================================================
+   C-REXX additions
+   ================================================================ */
+
+.prepare { max-width: 880px; }
+.step { grid-template-columns: 44px minmax(0, 1fr); }
+.wordmark-name { white-space: nowrap; }
+.dt-wrap { overflow-x: auto; }
+
+.field-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 14px 0 6px;
+}
+textarea.is-short { min-height: 90px; }
+textarea.is-tall { min-height: 260px; }
+select, input[type="text"] {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+select:focus-visible, input:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+
+.seg {
+  display: inline-flex;
+  gap: 3px;
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px;
+}
+.seg button {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 5px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg button.is-on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.lang-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+
+/* upload mode file list */
+.file-list { display: grid; gap: 6px; margin: 10px 0 0; }
+.file-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 90px 30px;
+  gap: 10px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px 6px 12px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.file-row .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-row .file-lines { color: var(--ink-faint); font-size: 11px; }
+.file-row .file-x { border: 0; background: none; color: var(--ink-faint); cursor: pointer; font-size: 16px; }
+.file-row .file-x:hover { color: var(--bad); }
+.file-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.file-add input[type="text"] { flex: 1 1 200px; }
+
+/* checklist */
+.lenses { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.lens {
+  font-family: var(--sans);
+  font-size: 13px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.lens:hover { border-color: var(--ink-faint); }
+.lens.is-picked { border-color: var(--info); background: var(--info-tint); color: var(--info); }
+.gauge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+}
+.gauge-bar { flex: 0 0 180px; height: 8px; border-radius: 4px; background: var(--well); border: 1px solid var(--line-soft); overflow: hidden; }
+.gauge-fill { height: 100%; background: var(--good); }
+.gauge.g-medium .gauge-fill { background: var(--info); }
+.gauge.g-large .gauge-fill { background: var(--warn); }
+.gauge.g-xl .gauge-fill { background: var(--bad); }
+.grp { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); margin-bottom: 8px; }
+.grp-head { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+.grp-head label { display: flex; align-items: center; gap: 9px; font-weight: 600; cursor: pointer; }
+.grp-head .grp-code { font-family: var(--mono); color: var(--ink-faint); font-size: 12px; }
+.grp-head .grp-sub { color: var(--ink-soft); font-size: 13px; font-weight: 400; }
+.grp-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+.grp-fold { border: 0; background: none; color: var(--info); font-family: var(--mono); font-size: 11.5px; cursor: pointer; }
+.grp-items { border-top: 1px solid var(--line-soft); padding: 4px 0; }
+.mod-row {
+  display: grid;
+  grid-template-columns: 22px 34px minmax(0, 1fr) 26px;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.mod-row:hover { background: var(--well); }
+.mod-row input { accent-color: var(--info); }
+.mod-row.is-locked { cursor: default; opacity: 0.6; }
+.mod-code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+.mod-title { font-weight: 600; font-size: 14px; }
+.mod-blurb { color: var(--ink-soft); font-size: 13px; }
+.mod-size { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); text-align: right; }
+.star { color: var(--gold); }
+.mod-suggest {
+  grid-column: 3 / 5;
+  font-size: 12.5px;
+  color: var(--info);
+  background: var(--info-tint);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: default;
+}
+.mod-suggest button { font: inherit; color: var(--info); background: none; border: 0; text-decoration: underline; cursor: pointer; padding: 0 0 0 6px; }
+
+/* report */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; margin: 18px 0 4px; }
+.tile { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--well); padding: 10px 12px; }
+.tile .chip { white-space: normal; text-align: left; }
+.tile-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 6px; }
+.finding-card { border-left: 4px solid var(--line); }
+.finding-card.sev-high { border-left-color: var(--bad); }
+.finding-card.sev-medium { border-left-color: var(--warn); }
+.finding-card.sev-low { border-left-color: var(--slate); }
+.finding-text { margin: 0 0 6px; }
+.extra { margin: 4px 0 0; font-size: 13.5px; }
+.extra .kicker { display: inline; margin: 0 6px 0 0; }
+.cite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.cite-quote { color: var(--ink-soft); }
+pre.src {
+  margin: 8px 0 0;
+  padding: 8px 0;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+pre.src span { display: block; padding: 0 12px; white-space: pre; }
+pre.src span.is-hit { background: var(--warn-tint); }
+pre.src i { font-style: normal; color: var(--ink-faint); user-select: none; margin-right: 10px; }
+.checks { margin: 0; padding-left: 20px; }
+.checks li { margin: 4px 0; }
+.checks li.c-bad { color: var(--bad); }
+.checks li.c-warn { color: var(--warn); }
+table.dt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dt th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 400;
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+table.dt td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+table.dt td.mono { font-family: var(--mono); font-size: 12.5px; }
+.tree, .tree ul { list-style: none; margin: 0; padding-left: 18px; }
+.tree { padding-left: 0; font-family: var(--mono); font-size: 12.5px; }
+.tree li { position: relative; padding: 2px 0; }
+.tree ul li::before { content: "└ "; color: var(--ink-faint); position: absolute; left: -16px; }
+.tree .edge-kind { color: var(--ink-faint); font-size: 11px; margin-left: 6px; }
+.lineage { list-style: none; margin: 6px 0 0; padding: 0; }
+.lineage li { padding: 4px 0 4px 14px; border-left: 2px solid var(--line); margin-left: 4px; font-size: 13.5px; }
+.notrun { display: flex; flex-wrap: wrap; gap: 6px; }
+.sample-banner {
+  background: var(--info-tint);
+  border: 1px solid var(--info);
+  color: var(--info);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+}
+
+/* build log: the prompts that built this jig */
+.colophon-link {
+  font: inherit;
+  color: var(--ink-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-left: 6px;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+.colophon-link:hover { color: var(--ink-soft); }
+.buildlog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 50px 20px;
+  overflow-y: auto;
+}
+.buildlog {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 760px;
+  width: 100%;
+  padding: 28px 32px 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+.buildlog-head { display: flex; align-items: flex-start; gap: 16px; }
+.buildlog-head > div { margin-right: auto; }
+.buildlog-lessons { margin: 0 0 22px; padding-left: 20px; color: var(--ink-soft); font-size: 14px; }
+.buildlog-lessons li { margin: 0 0 9px; line-height: 1.55; }
+.buildlog ol.prompts { list-style: none; margin: 0; padding: 0; counter-reset: p; }
+.buildlog ol.prompts > li { counter-increment: p; margin: 0 0 18px; padding-left: 38px; position: relative; }
+.buildlog ol.prompts > li::before {
+  content: counter(p);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+.prompt-said {
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  background: var(--well);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 14px;
+  margin: 0;
+}
+.prompt-when { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 5px; }
+.prompt-then { color: var(--ink-soft); font-size: 13.5px; margin: 6px 0 0; }
+
+@media (max-width: 900px) {
+  .file-row { grid-template-columns: minmax(0, 1fr) 110px 30px; }
+  .file-row .file-lines { display: none; }
+  .mod-row { grid-template-columns: 22px 30px minmax(0, 1fr); }
+  .mod-size { display: none; }
+  .mod-suggest { grid-column: 2 / 4; }
+  .step { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
+  .gauge-bar { flex-basis: 100px; }
+  .grp-head .grp-sub { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="#" id="home-link">
+    <span class="wordmark-gem">&#9670;</span>
+    <span class="wordmark-name">C-REXX</span>
+    <span class="wordmark-tag">mainframe code reading</span>
+  </a>
+  <nav class="mode-tabs" aria-label="Mode">
+    <button class="mode-tab is-active" id="tab-prepare" type="button">Prepare</button>
+    <button class="mode-tab" id="tab-report" type="button">Report</button>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">&#9789;</button>
+</header>
+
+<main id="view-prepare">
+  <div class="prepare">
+    <h1 class="prepare-lede">Read a COBOL program or REXX exec.</h1>
+    <p class="prepare-sub">
+      Supply the source, choose what to examine, copy the prompt, run it in your AI
+      assistant, then paste the JSON reply back here. Everything happens in this
+      file. Nothing is uploaded or saved, apart from your checklist choices.
+      <button class="sample-link" id="load-sample" type="button">Or view a sample report first.</button>
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h2 class="step-title">Supply the source</h2>
+        <p class="step-body">Paste small programs straight in. For anything large, upload the
+        files to the chat yourself; the prompt will name them.</p>
+        <div class="variant-pick" role="radiogroup" aria-label="Delivery">
+          <label class="variant-card is-picked">
+            <input type="radio" name="delivery" value="paste" checked>
+            <span class="variant-name">Paste</span>
+            <span class="variant-desc">The source goes inside the copied prompt, with line numbers
+            added so citations are exact.</span>
+          </label>
+          <label class="variant-card">
+            <input type="radio" name="delivery" value="upload">
+            <span class="variant-name">Upload</span>
+            <span class="variant-desc">You attach the files to the chat. Open them here too
+            (locally, never sent) so the report can check coverage and citations.</span>
+          </label>
+        </div>
+
+        <div id="paste-inputs">
+          <label class="field-label" for="src-program">Program source</label>
+          <textarea id="src-program" class="is-tall" placeholder="Paste the COBOL program or REXX exec&hellip;" spellcheck="false"></textarea>
+          <label class="field-label" for="src-copybooks">Copybooks &mdash; optional, several pasted together</label>
+          <textarea id="src-copybooks" class="is-short" spellcheck="false"></textarea>
+          <label class="field-label" for="src-jcl">JCL &mdash; optional</label>
+          <textarea id="src-jcl" class="is-short" spellcheck="false"></textarea>
+        </div>
+
+        <div id="upload-inputs" hidden>
+          <div class="file-add">
+            <button class="btn" id="pick-files" type="button">Open files here&hellip;</button>
+            <input type="file" id="file-input" multiple hidden>
+            <input type="text" id="file-name" placeholder="or type a file name you will attach">
+            <button class="btn" id="add-file-name" type="button">Add</button>
+          </div>
+          <div class="file-list" id="file-list"></div>
+        </div>
+
+        <label class="field-label" for="context-note">Context &mdash; optional</label>
+        <textarea id="context-note" class="is-short" placeholder="e.g. runs nightly after the billing extract; abended last night with S0C7" spellcheck="false"></textarea>
+
+        <div class="lang-line">
+          <span class="field-label" style="margin:0">Language</span>
+          <span class="seg" id="lang-seg" role="radiogroup" aria-label="Language">
+            <button type="button" data-lang="AUTO" class="is-on">Auto</button>
+            <button type="button" data-lang="COBOL">COBOL</button>
+            <button type="button" data-lang="REXX">REXX</button>
+          </span>
+          <span class="hint" id="lang-hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h2 class="step-title">Choose what to examine</h2>
+        <p class="step-body">Pick a lens, then adjust. Fewer checks means deeper answers and a
+        reply that fits. Coverage, blind spots, purpose, context, and the summary are always
+        included. <span class="star">&#9733;</span> marks the checks that don't usually come to mind.</p>
+        <div class="lenses" id="lenses"></div>
+        <div class="gauge" id="gauge"></div>
+        <div id="checklist"></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h2 class="step-title">Copy the prompt and run it</h2>
+        <p class="step-body">Paste it into your AI assistant (attach the files first in Upload
+        mode). It replies with a single JSON object &mdash; copy the whole reply.</p>
+        <div class="step-actions">
+          <button class="btn btn-primary" id="copy-prompt" type="button">Copy prompt</button>
+          <span class="hint" id="copy-hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h2 class="step-title">Paste the JSON reply</h2>
+        <p class="step-body">Code fences or stray text around the JSON are fine &mdash;
+        they'll be stripped.</p>
+        <textarea id="json-input" placeholder='{ "jig": "c-rexx", &hellip; }' spellcheck="false"></textarea>
+        <div class="step-actions">
+          <button class="btn btn-primary" id="read-report" type="button">Read the report</button>
+        </div>
+        <div class="paste-error" id="paste-error" hidden></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main id="view-report" hidden></main>
+
+<footer class="colophon">
+  C-REXX runs entirely inside this file. Source and replies live only in this tab &mdash;
+  closing it clears them. Only your checklist choices and theme are remembered.
+  <button class="colophon-link" id="show-build-log" type="button">How this was built</button>
+</footer>
+
+<div id="build-log-host"></div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<!-- ============ the analyst preamble (heuristics.md §0 ground rules + schema.md conventions) ============ -->
+<script type="text/plain" id="prompt-preamble">
+You are a senior mainframe engineer and code archaeologist with deep experience in Enterprise COBOL, TSO/E REXX, JCL, DB2, CICS, and z/OS batch operations. Your job is to analyse one COBOL program or REXX exec and explain it to the person who now has to own it: what it does, how control and data move through it, how it fails, and where it is dangerous to change. Read the code the way the compiler and the runtime will execute it, not the way it looks on the page.
+
+Return ONLY a valid JSON object matching the schema below. Do not include markdown code fences such as ```json. Do not include conversational text before or after the JSON payload.
+
+### GROUND RULES (THEY APPLY TO EVERY MODULE)
+
+1. CITE. Every finding cites the file, the paragraph or label, the line range, and a verbatim quote of the code it came from. A finding you cannot cite is a finding you do not report.
+2. DECLARE BLIND SPOTS. List every copybook, called program, DD name, JCL parameter, external exec, or table definition that the code references but that was not supplied, and say which conclusions depend on it. Never invent the contents of something you have not seen.
+3. GRADE THE EVIDENCE. Every finding is OBSERVED (directly in the code), INFERRED (follows from the code plus normal z/OS behaviour), or SPECULATIVE (plausible, needs confirmation). Never present an inference as an observation.
+4. CHESTERTON'S FENCE. Assume odd code is load-bearing until shown otherwise. Flag it and ask about it; never recommend deleting it outright.
+5. DIALECT FIRST. Identify the language and its era before judging style. Old code is not marked down for lacking features its compiler did not have.
+6. REPORT COVERAGE. Before any finding, state what you actually read: each file's name and role, its total line count, and the first and last paragraph or label you saw. If any part of a file was not available to you, say which. Never extend a conclusion past what you read.
+7. STAY IN SCOPE. Run exactly the modules listed under MODULES TO RUN, no others. Depth on the requested modules beats breadth.
+
+### OUTPUT CONVENTIONS
+
+- Every requested module key must be present under "modules". When a module finds nothing, return its empty form (empty arrays and the rating that means nothing was found). Never omit a key.
+- Use null for unknown. Never use "", "N/A", or a guess — except where "N/A" is one of a field's listed values.
+- Enums are closed: use only the listed values. Where none fits and OTHER is offered, use OTHER and explain in the free text.
+- "lines" are physical line numbers in the file as supplied, counted from 1 — not COBOL sequence numbers (columns 1-6) and not ISPF line numbers. If you are unsure of the physical line, give the label and the quote and set "lines" to null.
+- "quote" is copied verbatim from the source: one line or less, at most 80 characters, leading spaces trimmed. It is used to locate the citation, so a paraphrase fails.
+- Today's date for any time-based judgement is {{TODAY}}.
+</script>
+
+<!-- ============ sample program for the sample report (fabricated; its defects are deliberate) ============ -->
+<script type="text/plain" id="sample-source">
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. LATEFEE.
+      * LATE FEE ASSESSMENT - NIGHTLY BATCH
+      * 1998-03-12 RJK  Y2K WINDOWING ADDED
+      * 2016-11-02 TMS  TKT 44871 EXEMPT ACCT 0012345
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ACCT-FILE ASSIGN TO ACCTIN
+               FILE STATUS IS WS-ACCT-STAT.
+           SELECT FEE-FILE  ASSIGN TO FEEOUT.
+       DATA DIVISION.
+       FILE SECTION.
+       FD  ACCT-FILE.
+       01  ACCT-REC.
+           05  AR-ACCT-NO        PIC X(7).
+           05  AR-REGION         PIC 99.
+           05  AR-BALANCE        PIC S9(7)V99 COMP-3.
+           05  AR-DUE-YY         PIC 99.
+           05  AR-DUE-MMDD       PIC 9(4).
+       FD  FEE-FILE.
+       01  FEE-REC               PIC X(40).
+       WORKING-STORAGE SECTION.
+       01  WS-ACCT-STAT          PIC XX.
+       01  WS-EOF                PIC X VALUE 'N'.
+           88  END-OF-FILE             VALUE 'Y'.
+       01  WS-FEE-COUNT          PIC 9(4) VALUE 0.
+       01  WS-DUE-CCYY           PIC 9(4).
+       01  WS-FEE-AMT            PIC 9(5)V99.
+       01  WS-RATE-PGM           PIC X(8) VALUE 'RATE01'.
+       01  WS-FEE-LINE.
+           05  FL-ACCT-NO        PIC X(7).
+           05  FILLER            PIC X VALUE SPACE.
+           05  FL-FEE            PIC Z(4)9.99.
+           05  FILLER            PIC X(24) VALUE SPACES.
+       PROCEDURE DIVISION.
+       0000-MAIN.
+           OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.
+           PERFORM 1000-READ.
+           PERFORM 2000-ASSESS THRU 2999-EXIT
+               UNTIL END-OF-FILE.
+           CLOSE ACCT-FILE FEE-FILE.
+           DISPLAY 'FEES ASSESSED: ' WS-FEE-COUNT.
+           STOP RUN.
+       1000-READ.
+           READ ACCT-FILE
+               AT END MOVE 'Y' TO WS-EOF.
+       2000-ASSESS.
+           IF AR-ACCT-NO = '0012345'
+               GO TO 2900-NEXT.
+           IF AR-DUE-YY < 50
+               COMPUTE WS-DUE-CCYY = 2000 + AR-DUE-YY
+           ELSE
+               COMPUTE WS-DUE-CCYY = 1900 + AR-DUE-YY.
+           IF AR-BALANCE > 0
+               CALL WS-RATE-PGM USING AR-REGION AR-BALANCE WS-FEE-AMT
+               ADD 1 TO WS-FEE-COUNT.
+               PERFORM 2500-WRITE-FEE.
+       2500-WRITE-FEE.
+           MOVE AR-ACCT-NO TO FL-ACCT-NO.
+           MOVE WS-FEE-AMT TO FL-FEE.
+           WRITE FEE-REC FROM WS-FEE-LINE.
+       2900-NEXT.
+           PERFORM 1000-READ.
+       2999-EXIT.
+           EXIT.
+</script>
+
+<!-- ============ schema skeletons, verbatim from .docs/jigs/c-rexx/schema.md
+     (tests/c-rexx-schema-drift.test.mjs holds them equal) ============ -->
+<script type="text/plain" id="skel-shared">
+Citation:
+{
+  "file": "File name as uploaded, or PROGRAM / COPYBOOK / JCL in paste mode",
+  "label": "Paragraph, section, or REXX label containing the code, or null",
+  "lines": "Physical line or range, e.g. \"412\" or \"412-418\", or null",
+  "quote": "Verbatim source fragment, ≤ 80 chars, one line"
+}
+
+Finding:
+{
+  "finding": "What is true here, in one or two plain sentences",
+  "citation": Citation,
+  "grade": "OBSERVED | INFERRED | SPECULATIVE"
+}
+
+Severity: "HIGH | MEDIUM | LOW"
+</script>
+<script type="text/plain" id="skel-envelope">
+{
+  "jig": "c-rexx",
+  "schema_version": 1,
+  "heuristics_run": ["Every module key you were asked to run, in the order given"],
+  "language": "COBOL | REXX",
+  "program_name": "PROGRAM-ID or exec name, or null",
+  "coverage": {
+    "complete": true,
+    "files": [
+      {
+        "name": "File name",
+        "role": "PROGRAM | COPYBOOK | JCL | OTHER",
+        "lines_seen": 0,
+        "first_label": "First paragraph/label you saw, or null",
+        "last_label": "Last paragraph/label you saw, or null",
+        "gaps": "Parts of the file not available to you, or null"
+      }
+    ]
+  },
+  "blind_spots": [
+    {
+      "item": "Name of the unseen thing, e.g. CUSTREC",
+      "kind": "COPYBOOK | CALLED_PROGRAM | DD | JCL_PARAM | EXTERNAL_EXEC | TABLE_DDL | OTHER",
+      "affects": ["Module keys whose conclusions depend on it"],
+      "impact": "What you could not conclude because it was missing"
+    }
+  ],
+  "modules": {
+    "<module key>": { ... one fragment per requested module, below ... }
+  },
+  "executive_narration": "5–8 plain-English sentences for someone who will never read the code: what it does, how healthy it is, what to worry about, what is unknown."
+}
+</script>
+<script type="text/plain" id="skel-purpose">
+{
+  "one_line": "The business purpose in one sentence",
+  "detail": "A short paragraph",
+  "confidence": "HIGH | MEDIUM | LOW",
+  "basis": [Finding]
+}
+</script>
+<script type="text/plain" id="skel-execution_context">
+{
+  "context": "BATCH_MAIN | CALLED_SUBPROGRAM | CICS_ONLINE | IMS | TSO_FOREGROUND | ISPF_DIALOG | ISPF_EDIT_MACRO | BATCH_TSO | USS | AUTOMATION | UNKNOWN",
+  "evidence": [Finding],
+  "inputs_at_invocation": "Parameters received (USING / ARG / PARM) and their meaning, or null"
+}
+</script>
+<script type="text/plain" id="skel-io_contract">
+{
+  "items": [
+    {
+      "name": "File/table/queue/dataset name as the code knows it",
+      "kind": "SEQUENTIAL | VSAM | DB2_TABLE | CICS_FILE | TSQ | TDQ | MQ | ISPF_TABLE | DATASET | SYSOUT | OTHER",
+      "dd_or_resource": "DD name, table, or resource id, or null",
+      "direction": "READ | WRITE | UPDATE | APPEND | DELETE | SUBMIT",
+      "layout": "FD / copybook / host-variable structure name, or null",
+      "citation": Citation,
+      "grade": "OBSERVED | INFERRED | SPECULATIVE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-dependencies">
+{
+  "items": [
+    {
+      "name": "Program, copybook, utility, or exec name",
+      "kind": "STATIC_CALL | DYNAMIC_CALL | COPYBOOK | UTILITY | EXTERNAL_EXEC | CICS_LINK | CICS_XCTL | OTHER",
+      "possible_targets": ["For DYNAMIC_CALL: every value the variable can hold, if visible"],
+      "citation": Citation,
+      "grade": "OBSERVED | INFERRED | SPECULATIVE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-skeleton">
+{
+  "mainline": [
+    {
+      "step": "What this step does, in plain words",
+      "label": "Paragraph/label",
+      "repeats": "once | a plain description of the loop condition",
+      "citation": Citation
+    }
+  ],
+  "edges": [
+    {
+      "from": "Label",
+      "to": "Label",
+      "kind": "PERFORM | PERFORM_THRU | CALL | GO_TO | SIGNAL | FUNCTION_CALL"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-unstructured_control">
+{
+  "rating": "STRUCTURED | DISCIPLINED_GOTO | TANGLED | ALTERED",
+  "items": [
+    Finding + {
+      "kind": "GO_TO | GO_TO_DEPENDING | ALTER | FALL_THROUGH | SIGNAL_GOTO | SIGNAL_ON"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-thru_hazards">
+{
+  "ranges": [
+    {
+      "from": "Label",
+      "to": "Label",
+      "paragraphs_inside": ["Every label physically inside the range"]
+    }
+  ],
+  "hazards": [
+    Finding + {
+      "kind": "INSERTED_PARAGRAPH | GOTO_EXITS_RANGE | OVERLAPPING_RANGES | DUAL_USE_PARAGRAPH",
+      "severity": Severity
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-scope_traps">
+{
+  "rating": "CLEAN | MIXED_STYLE | SUSPECT_SCOPE",
+  "items": [
+    Finding + {
+      "kind": "STRAY_PERIOD | NEXT_SENTENCE_IN_END_IF | MIXED_TERMINATORS",
+      "severity": Severity,
+      "what_actually_runs": "The behaviour the compiler will produce, in contrast to how it reads"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-termination">
+{
+  "rc_rating": "RC_DELIBERATE | RC_ACCIDENTAL | RC_ALWAYS_ZERO | RC_UNKNOWN",
+  "paths": [
+    {
+      "how": "STOP_RUN | GOBACK | EXIT_PROGRAM | FORCED_ABEND | REXX_EXIT | REXX_RETURN | OTHER",
+      "condition": "When this path is taken",
+      "return_code": "Value or expression set, or null if none set",
+      "citation": Citation,
+      "grade": "OBSERVED | INFERRED | SPECULATIVE"
+    }
+  ],
+  "leakage": [Finding]
+}
+</script>
+<script type="text/plain" id="skel-dead_code">
+{
+  "items": [
+    Finding + {
+      "kind": "PARAGRAPH | DATA_ITEM | CONDITION_88 | SWITCH | COMMENTED_OUT",
+      "status": "DEAD | POSSIBLY_DEAD"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-field_lineage">
+{
+  "fields": [
+    {
+      "field": "Field name",
+      "why_key": "Why this field matters (key, amount, date, status…)",
+      "steps": [
+        {
+          "action": "READ | MOVE | COMPUTE | REDEFINES | CONDITION | WRITE | CALL_PARAM | SQL",
+          "detail": "What happens to the value at this step",
+          "citation": Citation
+        }
+      ],
+      "ends_in": "Where the value finally lands, or null if it is consumed"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-truncation">
+{
+  "items": [
+    Finding + {
+      "kind": "ALPHA_TRUNCATION | NUMERIC_HIGH_ORDER | SIGN_LOSS | USAGE_MISMATCH | GROUP_MOVE_MISMATCH | REDEFINES_TYPE_PUN",
+      "severity": Severity,
+      "from_field": "Source field, or null",
+      "to_field": "Target field, or null"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-arithmetic">
+{
+  "rexx_numeric_digits": "Value set, DEFAULT_9, or null for COBOL",
+  "items": [
+    Finding + {
+      "kind": "NO_SIZE_ERROR | DIVIDE_BY_ZERO | PRECISION | NO_ROUNDED | REXX_NUMERIC_DIGITS | REXX_NONSTRICT_COMPARE",
+      "severity": Severity
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-bad_data">
+{
+  "rating": "GUARDED | UNGUARDED | N/A",
+  "items": [
+    Finding + {
+      "field": "Numeric field used",
+      "source": "Where its value comes from"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-uninitialised">
+{
+  "novalue_trapped": "true | false | null (COBOL)",
+  "items": [
+    Finding + {
+      "kind": "WS_NO_VALUE | INITIALIZE_GAP | COUNTER_NOT_RESET | REXX_NOVALUE | STEM_NO_DEFAULT",
+      "severity": Severity
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-bounds">
+{
+  "rating": "CHECKED | UNCHECKED | N/A",
+  "items": [
+    Finding + {
+      "table": "Table name",
+      "kind": "UNCHECKED_SUBSCRIPT | ODO_UNCHECKED | SEARCH_ALL_UNSORTED | SEARCH_LINEAR_LARGE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-ebcdic">
+{
+  "rating": "PORTABLE | EBCDIC_DEPENDENT",
+  "items": [
+    Finding + {
+      "kind": "LETTER_RANGE | COLLATING_ORDER | HEX_LITERAL | HIGH_LOW_VALUES | OTHER",
+      "breaks_when": "What change would expose it (ASCII platform, downstream sort…)"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-status_checks">
+{
+  "rating": "THOROUGH | PARTIAL | ABSENT",
+  "checked_count": 0,
+  "unchecked": [
+    Finding + {
+      "operation": "OPEN | READ | WRITE | REWRITE | DELETE | CLOSE | SQL | CICS | HOST_COMMAND | EXECIO | OTHER"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-swallowed">
+{
+  "items": [
+    Finding + {
+      "kind": "LOG_AND_CONTINUE | EMPTY_HANDLER | WHEN_OTHER_CONTINUE | TRAPPED_UNREAD | RC_RESET",
+      "severity": Severity,
+      "consequence": "What goes wrong downstream when this failure is ignored"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-edge_inputs">
+{
+  "cases": [
+    {
+      "case": "EMPTY_INPUT | MISSING_DATASET | SINGLE_RECORD | DUPLICATE_KEYS",
+      "input": "Which file/DD/table",
+      "outcome": "HANDLED | ABENDS | WRONG_OUTPUT | UNKNOWN",
+      "explanation": "What happens, step by step, briefly",
+      "citation": Citation,
+      "grade": "OBSERVED | INFERRED | SPECULATIVE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-rerun">
+{
+  "rating": "RERUNNABLE | RERUN_WITH_CLEANUP | NOT_RERUNNABLE | UNKNOWN",
+  "cleanup_steps": ["What must be undone before a rerun"],
+  "factors": [
+    Finding + {
+      "kind": "COMMIT_POSITION | CHECKPOINT_RESTART | MOD_OUTPUT | GDG_PLUS_ONE | NON_IDEMPOTENT_UPDATE | EXTERNAL_SIDE_EFFECT"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-business_rules">
+{
+  "rules": [
+    {
+      "rule": "The rule in plain business English",
+      "condition": "When it applies, in terms of the data",
+      "action": "What the code does",
+      "citation": Citation,
+      "grade": "OBSERVED | INFERRED | SPECULATIVE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-fossils">
+{
+  "items": [
+    Finding + {
+      "status": "ACTIVE_SPECIAL_CASE | EXPIRED | UNCLEAR",
+      "hardcoded_value": "The literal, e.g. '0012345' or 20190101",
+      "history": "Date, initials, or ticket from nearby comments, or null"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-time_bombs">
+{
+  "items": [
+    Finding + {
+      "kind": "DATE_WINDOW | TWO_DIGIT_YEAR | COUNTER_WRAP | TABLE_CAPACITY | HARDCODED_DATE | FIELD_WIDTH",
+      "urgency": "IMMINENT | DISTANT | CAPACITY_RISK",
+      "trigger": "The condition that sets it off",
+      "when": "Year, date, or volume at which it goes off, or null"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-ordering">
+{
+  "rating": "VERIFIED_ORDER | ASSUMED_ORDER | N/A",
+  "items": [
+    Finding + {
+      "kind": "CONTROL_BREAK | MATCH_MERGE | SORT_PROCEDURE"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-reconciliation">
+{
+  "rating": "RECONCILED | COUNTED_NOT_BALANCED | SILENT",
+  "counters": [
+    {
+      "name": "Counter field",
+      "counts": "What it counts",
+      "reported": true,
+      "citation": Citation
+    }
+  ],
+  "rejects_go_to": "Where rejected records end up, or null if they vanish"
+}
+</script>
+<script type="text/plain" id="skel-side_effects">
+{
+  "items": [
+    Finding + {
+      "kind": "JOB_SUBMIT | MESSAGE | MQ | TDQ | CONSOLE_COMMAND | RACF | DATASET_DELETE | DATASET_RENAME | HIDDEN_DB_UPDATE | OTHER"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-name_drift">
+{
+  "items": [
+    Finding + {
+      "name": "The paragraph/field/routine name",
+      "implies": "What the name suggests",
+      "actually": "What it does"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-stale_comments">
+{
+  "items": [
+    Finding + {
+      "comment_says": "Short paraphrase of the comment",
+      "code_does": "What the code actually does",
+      "comment_citation": Citation
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-rexx_traps">
+{
+  "items": [
+    Finding + {
+      "check": "INTERPRET | PULL | DATA_STACK | PROCEDURE_EXPOSE | ADDRESS | OUTTRAP_EXECIO | TRACE_SAY | PARSE_TEMPLATE",
+      "severity": Severity
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-era">
+{
+  "dialect": "OS_VS_COBOL | VS_COBOL_II | ENTERPRISE_COBOL | TSO_E_REXX | NETVIEW_REXX | USS_REXX | UNKNOWN",
+  "earliest_date_seen": "Earliest date in comments/change log, or null",
+  "latest_date_seen": "Latest date in comments/change log, or null",
+  "evidence": [Finding],
+  "upgrade_risks": [Finding]
+}
+</script>
+<script type="text/plain" id="skel-structure">
+{
+  "rating": "CLEAN | SERVICEABLE | STRAINED | HAZARDOUS",
+  "reasons": [Finding],
+  "metrics": {
+    "paragraph_count": 0,
+    "largest_label": "Label",
+    "largest_lines": 0,
+    "max_nesting": 0
+  }
+}
+</script>
+<script type="text/plain" id="skel-hotspots">
+{
+  "items": [
+    Finding + {
+      "why_risky": "What makes a change here dangerous",
+      "safe_change_advice": "How to change it safely"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-hardcoding">
+{
+  "rating": "PARAMETERISED | PARTLY | HARDCODED",
+  "items": [
+    Finding + {
+      "kind": "DATASET | HLQ | LPAR_REGION | USERID | PRINTER | DB2_SUBSYSTEM | OTHER",
+      "value": "The literal"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-security">
+{
+  "items": [
+    Finding + {
+      "kind": "CREDENTIAL | INTERPRET_INPUT | DYNAMIC_SQL | RACF_COMMAND | PII_EXPOSURE | OTHER",
+      "severity": Severity
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-performance">
+{
+  "rating": "NONE_SEEN | MINOR | SIGNIFICANT",
+  "items": [
+    Finding + {
+      "kind": "SQL_IN_LOOP | SINGLETON_IN_LOOP | LINEAR_SEARCH | OPEN_CLOSE_IN_LOOP | OUTPUT_IN_LOOP | REXX_EXECIO_SINGLE | REXX_STRING_BUILD | OTHER",
+      "impact": "Expected cost at production volume"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-test_recipe">
+{
+  "cases": [
+    {
+      "case": "Short name",
+      "input_condition": "The record(s)/data needed",
+      "expected_path": "What should happen",
+      "reaches": ["Labels exercised"],
+      "from": "Module key that motivated it (edge_inputs, time_bombs…), or null"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-seams">
+{
+  "rating": "CLEAN_SEAMS | ENTANGLED | MONOLITHIC",
+  "seams": [
+    Finding + {
+      "kind": "PURE_COMPUTATION | IO_BOUNDARY | RULES_BLOCK | SERVICE_CANDIDATE"
+    }
+  ],
+  "blockers": [
+    Finding + {
+      "kind": "EBCDIC | PACKED_DECIMAL | DYNAMIC_CALL | SIDE_EFFECT | GLOBAL_STATE | OTHER"
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="skel-owner_questions">
+{
+  "items": [
+    {
+      "question": "Question only a person can answer",
+      "raised_by": "Module key",
+      "why_it_matters": "What the answer would change"
+    }
+  ]
+}
+</script>
+
+<script>
+'use strict';
+
+/* ---------------- dom helpers (potemkin dom-helpers-safe-render, inlined: a jig is one file) ---------------- */
+
+const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const MARKUP = Symbol('markup');
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ESCAPES[ch]);
+}
+// Trusted markup, passed through html`` unescaped. Only for markup this code wrote, never for data.
+function raw(markup) {
+  return { [MARKUP]: String(markup) };
+}
+// Every interpolated value is escaped unless it is itself html`` or raw(); arrays are joined; null and false vanish.
+function html(strings, ...values) {
+  let out = strings[0];
+  values.forEach((value, i) => { out += renderValue(value) + strings[i + 1]; });
+  return raw(out);
+}
+function renderValue(value) {
+  if (value == null || value === false) return '';
+  if (Array.isArray(value)) return value.map(renderValue).join('');
+  if (typeof value === 'object' && MARKUP in value) return value[MARKUP];
+  return escapeHtml(value);
+}
+function mount(host, fragment) {
+  host.innerHTML = fragment[MARKUP];
+  return host;
+}
+// One click listener on the host; [data-act="name"] elements inside it call acts.name(element, event).
+function delegate(host, acts) {
+  host.addEventListener('click', event => {
+    const element = event.target.closest('[data-act]');
+    if (element && host.contains(element) && acts[element.dataset.act]) {
+      acts[element.dataset.act](element, event);
+    }
+  });
+}
+
+/* ---------------- theme ---------------- */
+
+const root = document.documentElement;
+const themeToggle = document.getElementById('theme-toggle');
+
+function appliedTheme() {
+  return root.dataset.theme ||
+    (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function paintToggle() {
+  themeToggle.textContent = appliedTheme() === 'dark' ? '☀' : '☾';
+}
+try {
+  const saved = localStorage.getItem('c-rexx-theme');
+  if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+} catch (e) { /* storage blocked: theme just follows the system */ }
+paintToggle();
+
+themeToggle.addEventListener('click', () => {
+  const next = appliedTheme() === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('c-rexx-theme', next); } catch (e) {}
+  paintToggle();
+});
+
+/* ---------------- tiny utils ---------------- */
+
+function arr(v) { return Array.isArray(v) ? v : []; }
+function obj(v) { return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+function has(v) { return v !== undefined && v !== null && String(v).trim() !== ''; }
+
+function humanize(v) {
+  if (!has(v)) return '';
+  return String(v).replace(/_/g, ' ').toLowerCase()
+    .replace(/^./, c => c.toUpperCase())
+    .replace(ACRONYMS, w => w.toUpperCase());
+}
+const ACRONYMS = /\b(rc|dd|db2|sql|cics|ims|tso|ispf|uss|rexx|cobol|os|vs|ii|jcl|mq|tdq|tsq|pii|hlq|lpar|racf|gdg|odo|ebcdic|io|s0c7)\b|\bn\/a\b/gi;
+
+const toast = document.getElementById('toast');
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('is-shown');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-shown'), 2200);
+}
+
+function copyText(text, doneMsg) {
+  const done = () => showToast(doneMsg);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch (e) { showToast('Copy failed — select and copy manually'); }
+  document.body.removeChild(ta);
+}
+
+function store(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+function recall(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+}
+
+function textBlock(id) {
+  return document.getElementById(id).textContent.replace(/^\n/, '').replace(/\n\s*$/, '');
+}
+
+/* ================================================================
+   The catalog — .docs/jigs/c-rexx/modules.md
+   ================================================================ */
+
+const GROUPS = [
+  { id: 'A', title: 'Orientation', sub: 'what is this thing?' },
+  { id: 'B', title: 'Flow', sub: 'how does control move?' },
+  { id: 'C', title: 'Data', sub: 'what does it do to values?' },
+  { id: 'D', title: 'Failure behaviour', sub: 'what happens when the world misbehaves?' },
+  { id: 'E', title: 'Behaviour and meaning', sub: 'what does it really do?' },
+  { id: 'F', title: 'REXX traps', sub: 'what bites REXX in particular?' },
+  { id: 'G', title: 'Quality, risk, and change', sub: 'how safe is it to own?' },
+  { id: 'H', title: 'The close', sub: 'what to take to a person' },
+];
+
+const SIZE_WEIGHT = { S: 1, M: 3, L: 6 };
+const ENVELOPE_WEIGHT = 3; // coverage, blind spots, narration
+const GAUGE_BANDS = [
+  { max: 30, word: 'small', cls: 'g-small', note: 'fits in one reply, even for large programs' },
+  { max: 60, word: 'medium', cls: 'g-medium', note: 'fits for most programs' },
+  { max: 90, word: 'large', cls: 'g-large', note: 'may be cut off on programs over about 3,000 lines' },
+  { max: Infinity, word: 'very large', cls: 'g-xl', note: 'likely to be cut off on large programs — use a lens, or split across two runs' },
+];
+
+// view specs: the generic renderer reads these; functions are custom renderers (see "module views")
+const MODULES = [
+  { code: 'A1', key: 'purpose', group: 'A', title: 'Purpose', size: 'S', langs: 'BOTH', locked: true,
+    blurb: 'What the program is for, in one sentence, with a confidence grade',
+    ask: 'State the program\'s business purpose in one plain sentence, then a short paragraph, built only from what the code shows: names, I/O, computations, messages, comments. Grade your confidence and cite the evidence in "basis".' },
+  { code: 'A2', key: 'execution_context', group: 'A', title: 'Execution context', size: 'S', langs: 'BOTH', locked: true,
+    blurb: 'Batch, subprogram, CICS, TSO, ISPF, edit macro…',
+    ask: 'Decide how this code is run. COBOL clues: STOP RUN versus GOBACK, PROCEDURE DIVISION USING and LINKAGE SECTION, EXEC CICS, DL/I calls, EXEC SQL. REXX clues: ADDRESS environments (TSO, ISPEXEC, ISREDIT, MVS, LINK, SYSCALL, DSNREXX, CONSOLE), ARG / PARSE ARG, ISPF services, SYSVAR / MVSVAR. Context changes meaning: SAY in batch goes to SYSTSPRT, and PULL in batch reads SYSTSIN. Describe the parameters received at invocation.' },
+  { code: 'A3', key: 'io_contract', group: 'A', title: 'I/O contract', size: 'M', langs: 'BOTH',
+    blurb: 'Every file, table, queue, and dataset it touches, and which way',
+    ask: 'List every external thing the program touches and the direction: SELECT/ASSIGN and FD (with the OPEN mode), EXEC SQL tables and verbs, CICS files and queues, LINK/XCTL; REXX EXECIO, ALLOCATE/FREE, LISTDSI, OUTTRAP targets, ISPF tables, SUBMIT. Include DISPLAY/SAY output to SYSOUT. One item per resource and direction.' },
+  { code: 'A4', key: 'dependencies', group: 'A', title: 'Dependencies', size: 'M', langs: 'BOTH',
+    blurb: 'Static and dynamic calls, copybooks, utilities, other execs',
+    ask: 'List static CALLs (CALL \'LITERAL\'), dynamic CALLs (CALL WS-VARIABLE — find every value the variable can hold), COPY members (note REPLACING), external REXX functions and execs, and utilities invoked (IDCAMS, SORT, IEBGENER, IKJEFT01, DSNTEP2…). Dynamic calls are invisible to cross-reference tools; naming them is a finding in itself.' },
+
+  { code: 'B1', key: 'skeleton', group: 'B', title: 'Flow skeleton', size: 'M', langs: 'BOTH',
+    blurb: 'The mainline sequence and the perform/call tree',
+    ask: 'Give the top-level flow as a short ordered list of steps in plain words, with the label of each and how often it repeats. Then list every control edge between paragraphs or labels (PERFORM, PERFORM THRU, CALL, GO TO, SIGNAL, internal function call) as a flat list in "edges"; the page draws the tree.' },
+  { code: 'B2', key: 'unstructured_control', group: 'B', title: 'Unstructured control', size: 'M', langs: 'BOTH',
+    blurb: 'GO TO, ALTER, fall-through, SIGNAL used as goto',
+    ask: 'Find GO TO, GO TO DEPENDING ON, ALTER (severe: it rewrites a GO TO\'s target at run time), paragraphs that fall through into the next, REXX SIGNAL used as a goto (SIGNAL ends every active DO and SELECT, so a SIGNAL out of a loop never comes back), and SIGNAL ON handlers. Rate DISCIPLINED_GOTO when GO TO only targets exit paragraphs.' },
+  { code: 'B3', key: 'thru_hazards', group: 'B', title: 'PERFORM THRU hazards', size: 'M', langs: 'COBOL', star: true,
+    blurb: 'Paragraphs that silently join a THRU range; jumps out of ranges',
+    ask: 'PERFORM A THRU B executes every paragraph physically between A and B. List each THRU range and the paragraphs inside it. Find paragraphs that sit inside a range and are also PERFORMed on their own (they run twice or out of turn), GO TOs that leave a range, overlapping ranges, and paragraphs that look like later insertions into a range. Explain the actual execution order.' },
+  { code: 'B4', key: 'scope_traps', group: 'B', title: 'Period and scope traps', size: 'M', langs: 'COBOL', star: true,
+    blurb: 'A stray period or NEXT SENTENCE that changes what actually runs',
+    ask: 'Read every IF/ELSE the way the compiler does. Find stray periods that end an IF early (the lines after the period then run unconditionally), NEXT SENTENCE inside IF…END-IF (it jumps past the next period, not past the END-IF), and paragraphs mixing period-delimited and END-delimited style. For each, state what actually runs.' },
+  { code: 'B5', key: 'termination', group: 'B', title: 'Endings and return codes', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Every way it ends, the RC each sets, RC leakage from CALLs',
+    ask: 'List every way the program ends — STOP RUN, GOBACK, EXIT PROGRAM, forced abends (CEE3ABD, ILBOABN0, deliberate divide by zero), REXX EXIT n and RETURN — with the condition and the return code each sets. Look for return-code leakage: every COBOL CALL overwrites RETURN-CODE, so a subprogram\'s RC can become the step RC by accident; a bare REXX EXIT returns 0 even after failures. Rate whether the final RC is deliberate.' },
+  { code: 'B6', key: 'dead_code', group: 'B', title: 'Dead code and data', size: 'M', langs: 'BOTH',
+    blurb: 'Unreached paragraphs, unused fields, untested 88s',
+    ask: 'Find paragraphs never PERFORMed or reached, working-storage items never referenced (or set but never read), 88-levels never tested, switches set but never read, and commented-out code blocks. Use POSSIBLY_DEAD when the item could be reached only through a THRU range, a dynamic call, or ALTER.' },
+
+  { code: 'C1', key: 'field_lineage', group: 'C', title: 'Key-field lineage', size: 'L', langs: 'BOTH', star: true, requires: ['io_contract'],
+    blurb: 'Trace three to five key fields from input to output',
+    ask: 'Choose the three to five fields that matter most (keys, amounts, dates, status codes) and trace each from where it enters to where it leaves: every READ, MOVE, COMPUTE, REDEFINES, condition, CALL parameter, SQL use, and WRITE, in execution order.' },
+  { code: 'C2', key: 'truncation', group: 'C', title: 'Silent truncation', size: 'M', langs: 'BOTH',
+    blurb: 'Moves and arithmetic that lose characters, digits, or sign',
+    ask: 'Find MOVEs into shorter alphanumeric fields (right truncation), numeric MOVEs or arithmetic into smaller PICs (high-order digits lost silently), signed into unsigned (sign lost), DISPLAY/COMP/COMP-3 mixed in comparisons, group MOVEs between layouts that do not match, and REDEFINES that read data as the wrong type.' },
+  { code: 'C3', key: 'arithmetic', group: 'C', title: 'Arithmetic safety', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'SIZE ERROR, zero divide, rounding; REXX NUMERIC DIGITS and = vs ==',
+    ask: 'Check ADD, SUBTRACT, MULTIPLY, DIVIDE, and COMPUTE for missing ON SIZE ERROR, division without a zero guard, intermediate precision loss, and money results without ROUNDED. For REXX: NUMERIC DIGITS defaults to 9, so results over 9 significant digits turn into exponential notation, and non-strict comparison (=, <, >) of two numeric strings is numeric at that precision — two different 12-digit account numbers can compare equal, and \'007\' = \'7\' is true. Check whether keys are compared with strict == and whether NUMERIC DIGITS is set.' },
+  { code: 'C4', key: 'bad_data', group: 'C', title: 'Bad-data abends (S0C7)', size: 'S', langs: 'COBOL',
+    blurb: 'Input numerics used without an IS NUMERIC test',
+    ask: 'Find numeric fields (packed COMP-3 or zoned) whose values come from input files, parameters, or tables and are used in arithmetic or comparisons without an IS NUMERIC class test first. These abend S0C7 on bad data.' },
+  { code: 'C5', key: 'uninitialised', group: 'C', title: 'Uninitialised state', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Fields read before written; REXX variables that evaluate to their own name',
+    ask: 'COBOL: working-storage read before it is written and without a VALUE clause, INITIALIZE statements that miss FILLER or REDEFINES, counters and accumulators not reset between control groups. REXX: an uninitialised variable evaluates to its own name in uppercase, so a typo becomes a literal string with no error — check for SIGNAL ON NOVALUE, and for stems used as lookups without a default (stem. = \'\').' },
+  { code: 'C6', key: 'bounds', group: 'C', title: 'Table bounds', size: 'M', langs: 'COBOL',
+    blurb: 'Unchecked subscripts, ODO counts, SEARCH ALL on unsorted keys',
+    ask: 'Find OCCURS tables indexed or subscripted without a bounds check (storage overlay, S0C4), OCCURS DEPENDING ON counts never validated, SEARCH ALL on tables not guaranteed sorted on the ASCENDING KEY, and linear SEARCH on large tables.' },
+  { code: 'C7', key: 'ebcdic', group: 'C', title: 'EBCDIC assumptions', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Letter-range gaps, collating order, hex sentinels',
+    ask: 'Find logic that depends on EBCDIC: letter ranges such as \'A\' THRU \'Z\' (EBCDIC letters are not contiguous — the gaps after I and after R admit non-letters), code relying on collating order (in EBCDIC lowercase < uppercase < digits, the reverse of ASCII), hex literals, HIGH-VALUES / LOW-VALUES sentinels, X\'40\' used as a space. Say what change would expose each.' },
+
+  { code: 'D1', key: 'status_checks', group: 'D', title: 'Status-check discipline', size: 'M', langs: 'BOTH',
+    blurb: 'FILE STATUS, SQLCODE, RESP, and RC checked after every operation',
+    ask: 'Check whether FILE STATUS is declared and tested after every OPEN, READ, WRITE, REWRITE, DELETE, and CLOSE; SQLCODE/SQLSTATE after every EXEC SQL, with +100 handled apart from negative codes; RESP or HANDLE CONDITION for CICS; RC after every REXX host command and EXECIO. Count the checked operations and list each unchecked one.' },
+  { code: 'D2', key: 'swallowed', group: 'D', title: 'Swallowed failures', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Errors noticed, then ignored, so the code only looks defensive',
+    ask: 'Find failures that are noticed but not acted on: errors DISPLAYed or SAYed while processing continues with RC 0, WHEN OTHER CONTINUE, handlers that just RETURN, OUTTRAP output nobody reads, return codes reset to zero. These are worse than unchecked errors because the code looks defensive. State the downstream consequence.' },
+  { code: 'D3', key: 'edge_inputs', group: 'D', title: 'Empty / missing / duplicate input', size: 'M', langs: 'BOTH', star: true, requires: ['io_contract'],
+    blurb: 'The four inputs that cause a 3 a.m. page, walked through',
+    ask: 'For each main input, walk the program through four cases: empty input, missing DD or dataset, a single record, duplicate keys. Typical outcomes: the first READ hits AT END and a zero report is printed; an average divides by a zero count; a control break fires on the sentinel; a missing file loops forever because its status is never checked. Explain step by step.' },
+  { code: 'D4', key: 'rerun', group: 'D', title: 'Rerun safety', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Can it just be resubmitted after an abend?',
+    ask: 'Decide whether the program can simply be resubmitted after abending halfway: DB2 COMMIT frequency and position, checkpoint/restart logic, outputs that a rerun would duplicate (DISP=MOD) or orphan (GDG +1), non-idempotent updates (ADD 1 TO a stored value), external side effects already done (jobs submitted, messages sent, datasets deleted). List the cleanup a rerun needs.' },
+
+  { code: 'E1', key: 'business_rules', group: 'E', title: 'Business rules', size: 'L', langs: 'BOTH', star: true,
+    blurb: 'Every rule the code enforces, in plain English with its line',
+    ask: 'Extract every decision that encodes a business rule — EVALUATE branches, IF thresholds, special cases, rate selections — as a plain-English rule a business analyst would recognise, with the condition in data terms and the action taken. This is often the only written record of these rules.' },
+  { code: 'E2', key: 'fossils', group: 'E', title: 'Hotfix fossils', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Hardcoded special cases, including expired ones',
+    ask: 'Find hardcoded special cases: specific account numbers, customers, regions, or dates (IF RUN-DATE < 20190101), and code tied to comment dates, initials, or ticket numbers. Mark EXPIRED when the condition can no longer be true — dead code that looks alive. Never recommend removal; ask.' },
+  { code: 'E3', key: 'time_bombs', group: 'E', title: 'Time bombs and ceilings', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Date windows, counters that wrap, tables that are nearly full',
+    ask: 'Find what will break with time or volume: date windowing (IF YY < 50 add 2000 — give the year the pivot fails), two-digit years, PIC 9(n) counters and sequence numbers that wrap silently without SIZE ERROR, OCCURS tables whose load loop does not guard against overflow, hardcoded year-end dates, fields only just wide enough for today\'s values. IMMINENT means within two years of today.' },
+  { code: 'E4', key: 'ordering', group: 'E', title: 'Ordering and matching', size: 'M', langs: 'BOTH',
+    blurb: 'Control breaks and match/merge that assume sorted input',
+    ask: 'Find control-break logic that assumes sorted input but never checks the sequence; two-file match/merge (balance-line) logic — check sentinel handling, unmatched records on each side, and both files ending together; and SORT with INPUT/OUTPUT PROCEDUREs.' },
+  { code: 'E5', key: 'reconciliation', group: 'E', title: 'Reconciliation', size: 'S', langs: 'BOTH',
+    blurb: 'Counts and control totals, and where rejects go',
+    ask: 'Check whether the program counts records read, written, and rejected, and reports or balances those counts; whether money has control totals; and where rejected records go — somewhere a person will see them, or nowhere.' },
+  { code: 'E6', key: 'side_effects', group: 'E', title: 'Hidden side effects', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Job submits, messages, deletes, console and RACF commands',
+    ask: 'List anything that changes the world besides the main outputs: job submission (REXX SUBMIT, or writing to a DD that the JCL may route to the internal reader), messages or email, MQ or TDQ writes, console commands, RACF or TSO commands, dataset deletes or renames, DB2 updates to tables that look like lookups.' },
+  { code: 'E7', key: 'name_drift', group: 'E', title: 'Name–behaviour drift', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Names that no longer describe what the code does',
+    ask: 'Find paragraphs, routines, and fields whose names no longer describe what they do: a 2000-VALIDATE that also writes the master, WS-TOTAL holding a count, CHECK_DSN that deletes the dataset.' },
+  { code: 'E8', key: 'stale_comments', group: 'E', title: 'Stale comments', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Comments that contradict the code',
+    ask: 'Find comments that describe behaviour the code no longer has: stale thresholds, removed steps, old dataset or program names. Cite the code in "citation" and the comment in "comment_citation".' },
+
+  { code: 'F', key: 'rexx_traps', group: 'F', title: 'REXX traps', size: 'M', langs: 'REXX', star: true, requires: ['arithmetic'],
+    blurb: 'INTERPRET, PULL, data stack, PROCEDURE/EXPOSE, ADDRESS, OUTTRAP, TRACE, PARSE',
+    ask: 'REXX-specific traps: INTERPRET, and VALUE() used to build variable names (dynamic code; injection if input reaches it); PULL / PARSE PULL (uppercases; with an empty data stack it reads the terminal, or SYSTSIN in batch); data-stack hygiene (PUSH, QUEUE, NEWSTACK, DELSTACK, QUEUED() — leftover lines leak to the caller or into TSO as commands); missing PROCEDURE / EXPOSE (every variable global); which ADDRESS environment each command really goes to (RC -3 means command not found); OUTTRAP never turned off and EXECIO without FINIS; TRACE left on and debugging SAYs; PARSE templates without a trailing period. NUMERIC DIGITS belongs to the arithmetic module, not here.' },
+
+  { code: 'G1', key: 'era', group: 'G', title: 'Era and dialect', size: 'S', langs: 'BOTH', star: true,
+    blurb: 'Language level and dates; compiler-upgrade risks',
+    ask: 'Estimate the language level from the features used — OS/VS COBOL, VS COBOL II, or Enterprise COBOL (scope terminators, inline PERFORM, EVALUATE, intrinsic FUNCTIONs, EXIT PERFORM, JSON/XML GENERATE); TSO/E, NetView, or USS REXX — and the earliest and latest dates in comments or change logs. List compiler-upgrade risks (NEXT SENTENCE, TRUNC, ARITH, numeric edge behaviour).' },
+  { code: 'G2', key: 'structure', group: 'G', title: 'Structure and health', size: 'S', langs: 'BOTH',
+    blurb: 'Overall health grade with the top three reasons',
+    ask: 'Grade overall structural health and give at most three reasons: paragraph or routine size, nesting depth, consistency of the naming and numbering scheme, one responsibility per paragraph, hidden global switch state. Give the metrics you can count.' },
+  { code: 'G3', key: 'hotspots', group: 'G', title: 'Change-risk hotspots', size: 'M', langs: 'BOTH', star: true,
+    blurb: 'Where a change is most likely to break something',
+    ask: 'Name the three to five places where a change is most likely to break something — a shared REDEFINES, a THRU range, a widely used copybook, a dynamic CALL, a period-delimited block — why, and how to change each safely.' },
+  { code: 'G4', key: 'hardcoding', group: 'G', title: 'Hardcoding', size: 'M', langs: 'BOTH',
+    blurb: 'Dataset names, HLQs, regions, userids, DB2 subsystem IDs',
+    ask: 'Find hardcoded dataset names and HLQs, LPAR or region names, userids, printer destinations, DB2 subsystem ids, and behaviour switched on SYSVAR(\'SYSUID\') or similar. These block promotion between environments.' },
+  { code: 'G5', key: 'security', group: 'G', title: 'Security and PII', size: 'M', langs: 'BOTH',
+    blurb: 'Credentials, injection, dynamic SQL, PII in SYSOUT',
+    ask: 'Find embedded passwords or userids, INTERPRET on external input, dynamic SQL built by concatenation (PREPARE / EXECUTE IMMEDIATE), RACF commands, and fields that look like PII (SSN, DOB, TAX-ID, ACCT, CARD) flowing into DISPLAY, SAY, SYSOUT, or work datasets.' },
+  { code: 'G6', key: 'performance', group: 'G', title: 'Performance smells', size: 'M', langs: 'BOTH',
+    blurb: 'SQL in loops, linear search, output inside loops',
+    ask: 'Find SQL inside loops where a cursor or join would do, singleton SELECTs in loops, linear SEARCH on large tables, files opened and closed inside a loop, DISPLAY or SAY inside the main loop, REXX EXECIO one record at a time where EXECIO * into a stem would do, and string building in large loops. Estimate the cost at production volume.' },
+  { code: 'G7', key: 'test_recipe', group: 'G', title: 'Test recipe', size: 'L', langs: 'BOTH', star: true, requires: ['edge_inputs', 'time_bombs'],
+    blurb: 'The smallest set of test records that covers every branch',
+    ask: 'Design the smallest set of test records that exercises every major branch: for each case, the input condition, the expected path, and the labels reached. Include the edge cases from edge_inputs and time_bombs when those modules are run, and name the module that motivated each case.' },
+  { code: 'G8', key: 'seams', group: 'G', title: 'Modernization seams', size: 'M', langs: 'BOTH', star: true, requires: ['business_rules'],
+    blurb: 'Where it splits apart, and what blocks a move',
+    ask: 'Identify where the program could be cut apart: pure computation versus I/O, business-rule blocks versus plumbing, candidates for a callable service. Then list what would block a move off this platform or into a service: EBCDIC dependence, packed decimal, dynamic calls, side effects, global state.' },
+
+  { code: 'H1', key: 'owner_questions', group: 'H', title: 'Questions for the owner', size: 'S', langs: 'BOTH', star: true,
+    blurb: 'What only a person can answer, each tied to a finding',
+    ask: 'List the questions only a person can answer — business intent, JCL and scheduling facts, unseen copybooks or programs, whether a special case is still wanted — each tied to the module that raised it and what the answer would change. These are the hand-off to the owner.' },
+];
+const BY_KEY = Object.fromEntries(MODULES.map(m => [m.key, m]));
+
+const LENSES = [
+  { id: 'abend', label: '3 a.m. abend', keys: ['termination', 'bad_data', 'status_checks', 'swallowed', 'edge_inputs', 'rerun', 'time_bombs', 'side_effects', 'owner_questions'] },
+  { id: 'inherit', label: 'Inheriting this program', keys: ['io_contract', 'dependencies', 'skeleton', 'field_lineage', 'business_rules', 'name_drift', 'stale_comments', 'era', 'owner_questions'] },
+  { id: 'change', label: 'Before I change it', keys: ['thru_hazards', 'scope_traps', 'dead_code', 'truncation', 'ordering', 'hotspots', 'test_recipe', 'owner_questions'] },
+  { id: 'audit', label: 'Audit / risk', keys: ['swallowed', 'rerun', 'fossils', 'time_bombs', 'reconciliation', 'hardcoding', 'security', 'owner_questions'] },
+  { id: 'modern', label: 'Modernization', keys: ['io_contract', 'ebcdic', 'business_rules', 'side_effects', 'hardcoding', 'seams', 'owner_questions'] },
+  { id: 'all', label: 'Everything', keys: MODULES.map(m => m.key) },
+];
+const DEFAULT_LENS = 'inherit';
+
+/* ---------------- schema skeletons and the enums they declare ---------------- */
+
+const SKELETON = Object.fromEntries(MODULES.map(m => [m.key, textBlock('skel-' + m.key)]));
+const SHARED_TYPES = textBlock('skel-shared');
+const ENVELOPE = textBlock('skel-envelope');
+const MODULES_SLOT = '"<module key>": { ... one fragment per requested module, below ... }';
+
+function enumsIn(text) {
+  const found = {};
+  for (const match of text.matchAll(/"(\w+)":\s*"([A-Z0-9_\/]+(?:\s*\|\s*[A-Z0-9_\/]+)+)"/g)) {
+    (found[match[1]] ||= new Set());
+    match[2].split('|').forEach(v => found[match[1]].add(v.trim()));
+  }
+  return found;
+}
+const GLOBAL_ENUMS = enumsIn(SHARED_TYPES + '\n' + ENVELOPE);
+GLOBAL_ENUMS.severity = new Set(['HIGH', 'MEDIUM', 'LOW']); // declared as the Severity type, used as "severity": Severity
+const MODULE_ENUMS = Object.fromEntries(MODULES.map(m => [m.key, enumsIn(SKELETON[m.key])]));
+const ALL_ENUM_VALUES = new Set();
+[GLOBAL_ENUMS, ...Object.values(MODULE_ENUMS)].forEach(e =>
+  Object.values(e).forEach(set => set.forEach(v => ALL_ENUM_VALUES.add(v))));
+
+/* ================================================================
+   Prepare: state
+   ================================================================ */
+
+const state = {
+  delivery: 'paste',
+  langChoice: 'AUTO',
+  selected: new Set(),
+  folded: new Set(),
+  files: [], // upload mode: { id, name, role, text|null }
+};
+let nextFileId = 1;
+
+(function restoreChoices() {
+  const saved = obj(recall('c-rexx-choices'));
+  const keys = arr(saved.selected).filter(k => BY_KEY[k]);
+  const lens = LENSES.find(l => l.id === DEFAULT_LENS);
+  state.selected = new Set(keys.length ? keys : lens.keys);
+  if (saved.delivery === 'upload') state.delivery = 'upload';
+})();
+MODULES.filter(m => m.locked).forEach(m => state.selected.add(m.key));
+
+function saveChoices() {
+  store('c-rexx-choices', { selected: [...state.selected], delivery: state.delivery });
+}
+
+/* ---------------- language ---------------- */
+
+function detectLang(text) {
+  if (!has(text)) return null;
+  if (/\b(IDENTIFICATION|ID)\s+DIVISION\b|\bPROCEDURE\s+DIVISION\b|\bPROGRAM-ID\b/i.test(text)) return 'COBOL';
+  if (/\/\*[^\n]*\bREXX\b/i.test(text.slice(0, 4000)) ||
+      /^\s*(say|parse\s+(upper\s+)?(arg|var|pull)|address\s+\w+|signal\s+on)\b/im.test(text)) return 'REXX';
+  return null;
+}
+function programText() {
+  if (state.delivery === 'paste') return document.getElementById('src-program').value;
+  const program = state.files.find(f => f.role === 'PROGRAM' && f.text != null);
+  return program ? program.text : '';
+}
+function effectiveLang() {
+  return state.langChoice === 'AUTO' ? detectLang(programText()) : state.langChoice;
+}
+function isVisible(m, lang) {
+  return m.langs === 'BOTH' || !lang || m.langs === lang;
+}
+function activeModules() {
+  const lang = effectiveLang();
+  return MODULES.filter(m => isVisible(m, lang) && state.selected.has(m.key));
+}
+
+const langHint = document.getElementById('lang-hint');
+function paintLang() {
+  document.querySelectorAll('#lang-seg button').forEach(b =>
+    b.classList.toggle('is-on', b.dataset.lang === state.langChoice));
+  const detected = detectLang(programText());
+  langHint.textContent = state.langChoice !== 'AUTO' ? 'set by hand'
+    : detected ? `detected: ${detected}` : 'not detected yet — showing every check';
+}
+document.getElementById('lang-seg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-lang]');
+  if (!b) return;
+  state.langChoice = b.dataset.lang;
+  paintLang();
+  renderChecklist();
+});
+
+/* ---------------- delivery: paste or upload ---------------- */
+
+const pasteInputs = document.getElementById('paste-inputs');
+const uploadInputs = document.getElementById('upload-inputs');
+
+function paintDelivery() {
+  document.querySelectorAll('input[name="delivery"]').forEach(r => {
+    r.checked = r.value === state.delivery;
+    r.closest('.variant-card').classList.toggle('is-picked', r.checked);
+  });
+  pasteInputs.hidden = state.delivery !== 'paste';
+  uploadInputs.hidden = state.delivery !== 'upload';
+}
+document.querySelectorAll('input[name="delivery"]').forEach(r => r.addEventListener('change', () => {
+  state.delivery = r.value;
+  saveChoices();
+  paintDelivery();
+  paintLang();
+  renderChecklist();
+}));
+document.getElementById('src-program').addEventListener('input', () => {
+  paintLang();
+  renderChecklist();
+});
+
+const ROLES = ['PROGRAM', 'COPYBOOK', 'JCL', 'OTHER'];
+function guessRole(name) {
+  if (/\.(cpy|copy|cpybk)$/i.test(name)) return 'COPYBOOK';
+  if (/\.(jcl|prc|proc)$/i.test(name)) return 'JCL';
+  return state.files.some(f => f.role === 'PROGRAM') ? 'OTHER' : 'PROGRAM';
+}
+function addFile(name, text) {
+  state.files.push({ id: nextFileId++, name, role: guessRole(name), text });
+}
+
+const fileList = document.getElementById('file-list');
+const fileInput = document.getElementById('file-input');
+const fileNameInput = document.getElementById('file-name');
+
+function renderFiles() {
+  mount(fileList, html`${state.files.map(f => html`
+    <div class="file-row">
+      <span class="file-name" title="${f.name}">${f.name}</span>
+      <select data-file="${f.id}" aria-label="Role of ${f.name}">
+        ${ROLES.map(r => html`<option value="${r}" ${r === f.role ? 'selected' : ''}>${humanize(r)}</option>`)}
+      </select>
+      <span class="file-lines">${f.text == null ? 'not opened here' : splitLines(f.text).length + ' lines'}</span>
+      <button class="file-x" type="button" data-act="remove-file" data-file="${f.id}" title="Remove" aria-label="Remove ${f.name}">&times;</button>
+    </div>`)}`);
+}
+delegate(fileList, {
+  'remove-file': el => {
+    state.files = state.files.filter(f => f.id !== Number(el.dataset.file));
+    renderFiles(); paintLang(); renderChecklist();
+  },
+});
+fileList.addEventListener('change', e => {
+  const f = state.files.find(x => x.id === Number(e.target.dataset.file));
+  if (!f) return;
+  f.role = e.target.value;
+  paintLang(); renderChecklist();
+});
+document.getElementById('pick-files').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async () => {
+  for (const file of fileInput.files) addFile(file.name, await file.text());
+  fileInput.value = '';
+  renderFiles(); paintLang(); renderChecklist();
+});
+function addTypedName() {
+  const name = fileNameInput.value.trim();
+  if (!name) return;
+  addFile(name, null);
+  fileNameInput.value = '';
+  renderFiles();
+}
+document.getElementById('add-file-name').addEventListener('click', addTypedName);
+fileNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTypedName(); });
+
+/* ---------------- the checklist ---------------- */
+
+const checklistHost = document.getElementById('checklist');
+const lensHost = document.getElementById('lenses');
+const gaugeHost = document.getElementById('gauge');
+
+function gaugeFor(mods) {
+  const total = ENVELOPE_WEIGHT + mods.reduce((n, m) => n + SIZE_WEIGHT[m.size], 0);
+  return { total, band: GAUGE_BANDS.find(b => total <= b.max) };
+}
+
+function renderChecklist() {
+  const lang = effectiveLang();
+  const visible = MODULES.filter(m => isVisible(m, lang));
+  const active = visible.filter(m => state.selected.has(m.key));
+  const activeKeys = active.map(m => m.key).sort().join();
+
+  mount(lensHost, html`${LENSES.map(l => {
+    const keys = visible.filter(m => m.locked || l.keys.includes(m.key)).map(m => m.key).sort().join();
+    return html`<button type="button" class="lens ${keys === activeKeys ? 'is-picked' : ''}" data-act="lens" data-lens="${l.id}">${l.label}</button>`;
+  })}`);
+
+  const { total, band } = gaugeFor(active);
+  gaugeHost.className = 'gauge ' + band.cls;
+  mount(gaugeHost, html`
+    <span>${active.length} checks</span>
+    <span class="gauge-bar"><span class="gauge-fill" style="display:block;width:${Math.min(100, Math.round(total / 1.2))}%"></span></span>
+    <span>reply &asymp; <strong>${band.word}</strong> &mdash; ${band.note}</span>`);
+
+  const focusKey = document.activeElement && (document.activeElement.dataset.key || document.activeElement.dataset.group);
+  mount(checklistHost, html`${GROUPS.map(g => {
+    const mods = visible.filter(m => m.group === g.id);
+    if (!mods.length) return '';
+    const free = mods.filter(m => !m.locked);
+    const on = mods.filter(m => state.selected.has(m.key));
+    const allOn = free.length > 0 && free.every(m => state.selected.has(m.key));
+    const folded = state.folded.has(g.id);
+    return html`
+      <div class="grp">
+        <div class="grp-head">
+          <label>
+            <input type="checkbox" data-group="${g.id}" ${allOn ? 'checked' : ''} ${free.length ? '' : 'disabled'}>
+            <span class="grp-code">${g.id}</span> ${g.title} <span class="grp-sub">&mdash; ${g.sub}</span>
+          </label>
+          <span class="grp-count">${on.length}/${mods.length}</span>
+          <button type="button" class="grp-fold" data-act="fold" data-g="${g.id}">${folded ? 'show' : 'hide'}</button>
+        </div>
+        ${folded ? '' : html`<div class="grp-items">${mods.map(m => moduleRow(m, visible))}</div>`}
+      </div>`;
+  })}`);
+
+  checklistHost.querySelectorAll('input[data-group]').forEach(box => {
+    const mods = visible.filter(m => m.group === box.dataset.group && !m.locked);
+    const n = mods.filter(m => state.selected.has(m.key)).length;
+    box.indeterminate = n > 0 && n < mods.length;
+  });
+  if (focusKey) {
+    const again = checklistHost.querySelector(`[data-key="${focusKey}"], [data-group="${focusKey}"]`);
+    if (again) again.focus();
+  }
+}
+
+function moduleRow(m, visible) {
+  const on = state.selected.has(m.key);
+  const missing = on ? (m.requires || []).filter(k => !state.selected.has(k) && visible.some(v => v.key === k)) : [];
+  return html`
+    <label class="mod-row ${m.locked ? 'is-locked' : ''}" title="${m.locked ? 'Always included' : ''}">
+      <input type="checkbox" data-key="${m.key}" ${on ? 'checked' : ''} ${m.locked ? 'disabled' : ''}>
+      <span class="mod-code">${m.code}</span>
+      <span><span class="mod-title">${m.title}</span>${m.star ? html` <span class="star" title="non-obvious">&#9733;</span>` : ''}
+        <span class="mod-blurb">&mdash; ${m.blurb}</span></span>
+      <span class="mod-size" title="Expected reply size">${m.size}</span>
+      ${missing.length ? html`<span class="mod-suggest">Works best with ${missing.map(k => BY_KEY[k].title).join(', ')}.<button type="button" data-act="add-required" data-keys="${missing.join(',')}">Add</button></span>` : ''}
+    </label>`;
+}
+
+delegate(lensHost, {
+  lens: el => {
+    const lens = LENSES.find(l => l.id === el.dataset.lens);
+    state.selected = new Set([...lens.keys, ...MODULES.filter(m => m.locked).map(m => m.key)]);
+    saveChoices();
+    renderChecklist();
+  },
+});
+delegate(checklistHost, {
+  fold: el => {
+    const g = el.dataset.g;
+    state.folded.has(g) ? state.folded.delete(g) : state.folded.add(g);
+    renderChecklist();
+  },
+  'add-required': (el, e) => {
+    e.preventDefault();
+    el.dataset.keys.split(',').forEach(k => state.selected.add(k));
+    saveChoices();
+    renderChecklist();
+  },
+});
+checklistHost.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.key) {
+    t.checked ? state.selected.add(t.dataset.key) : state.selected.delete(t.dataset.key);
+  } else if (t.dataset.group) {
+    const lang = effectiveLang();
+    MODULES.filter(m => m.group === t.dataset.group && !m.locked && isVisible(m, lang))
+      .forEach(m => t.checked ? state.selected.add(m.key) : state.selected.delete(m.key));
+  } else {
+    return;
+  }
+  saveChoices();
+  renderChecklist();
+});
+
+/* ================================================================
+   The prompt
+   ================================================================ */
+
+function splitLines(text) {
+  const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+function pasteSources() {
+  return [
+    { name: 'PROGRAM', role: 'PROGRAM', id: 'src-program' },
+    { name: 'COPYBOOKS', role: 'COPYBOOK', id: 'src-copybooks' },
+    { name: 'JCL', role: 'JCL', id: 'src-jcl' },
+  ].map(s => ({ name: s.name, role: s.role, text: document.getElementById(s.id).value }))
+    .filter(s => has(s.text))
+    .map(s => ({ name: s.name, role: s.role, lines: splitLines(s.text) }));
+}
+function uploadSources() {
+  return state.files.filter(f => f.text != null)
+    .map(f => ({ name: f.name, role: f.role, lines: splitLines(f.text) }));
+}
+function currentSources() {
+  return state.delivery === 'paste' ? pasteSources() : uploadSources();
+}
+
+function indentAfterFirst(text, pad) {
+  return text.split('\n').map((l, i) => i ? pad + l : l).join('\n');
+}
+
+function buildPrompt(mods) {
+  const lang = effectiveLang();
+  const context = document.getElementById('context-note').value.trim();
+  const today = new Date().toISOString().slice(0, 10);
+  const keys = mods.map(m => m.key);
+
+  const parts = [textBlock('prompt-preamble').replace('{{TODAY}}', today)];
+
+  parts.push('### THE PROGRAM\n\n' +
+    `Language: ${lang || 'not stated — detect COBOL or REXX from the source'}\n` +
+    `Context from the owner: ${context || 'none given'}`);
+
+  parts.push(`### MODULES TO RUN\n\nRun exactly these ${mods.length} modules, and no others. ` +
+    `"heuristics_run" must list exactly: ${keys.join(', ')}.\n\n` +
+    mods.map(m => `#### ${m.code} ${m.key} — ${m.title}\n${m.ask}`).join('\n\n'));
+
+  const moduleFragments = mods.map(m => `"${m.key}": ` + indentAfterFirst(SKELETON[m.key], '    ')).join(',\n    ');
+  parts.push('### OUTPUT JSON SCHEMA\n\n' +
+    'Shared types, referenced by name below. "Finding + { … }" means a Finding object with those fields added.\n\n' +
+    SHARED_TYPES + '\n\nThe reply:\n\n' + ENVELOPE.replace(MODULES_SLOT, moduleFragments));
+
+  if (state.delivery === 'paste') {
+    parts.push('### SOURCE\n\nEach line below is prefixed with its physical line number and "| ". ' +
+      'The prefix is not part of the source: use it for "lines", and never include it in a "quote".\n\n' +
+      pasteSources().map(s =>
+        `=== FILE: ${s.name} (role: ${s.role}, ${s.lines.length} lines) ===\n` +
+        s.lines.map((l, i) => String(i + 1).padStart(5) + '| ' + l).join('\n') +
+        `\n=== END FILE: ${s.name} ===`).join('\n\n'));
+  } else {
+    parts.push('### SOURCE FILES (ATTACHED TO THIS CONVERSATION)\n\n' +
+      'The source is not in this message. It is in these files, attached to this conversation:\n' +
+      state.files.map(f => `- ${f.name} — ${f.role}${f.text != null ? ` (${splitLines(f.text).length} lines)` : ''}`).join('\n') +
+      '\n\nRead every attached file in full before answering. Cite each file by exactly the name above. ' +
+      'Count physical lines from 1 in each file as attached. If an attachment is missing, or you can see only part of it, ' +
+      'say so in "coverage" and limit every conclusion to what you saw.');
+  }
+  return parts.join('\n\n');
+}
+
+const copyHint = document.getElementById('copy-hint');
+document.getElementById('copy-prompt').addEventListener('click', () => {
+  const fail = (msg) => { copyHint.textContent = msg; copyHint.className = 'hint is-bad'; };
+  if (state.delivery === 'paste' && !has(document.getElementById('src-program').value)) {
+    fail('Paste the program source first — the prompt needs it.');
+    document.getElementById('src-program').focus();
+    return;
+  }
+  if (state.delivery === 'upload' && !state.files.some(f => f.role === 'PROGRAM')) {
+    fail('List the files you will attach, with one marked Program.');
+    return;
+  }
+  const mods = activeModules();
+  copyText(buildPrompt(mods), 'Prompt copied — paste it into your AI assistant');
+  store('c-rexx-last-asked', mods.map(m => m.key));
+  const { band } = gaugeFor(mods);
+  copyHint.textContent = `Copied ${mods.length} checks (reply ≈ ${band.word}).` +
+    (state.delivery === 'upload' ? ' Attach the files, then paste the prompt.' : ' Run it, then paste the JSON reply below.');
+  copyHint.className = 'hint is-ok';
+});
+
+/* ================================================================
+   Mode switching and reading the reply
+   ================================================================ */
+
+const viewPrepare = document.getElementById('view-prepare');
+const viewReport = document.getElementById('view-report');
+const tabPrepare = document.getElementById('tab-prepare');
+const tabReport = document.getElementById('tab-report');
+
+let report = null; // the parsed JSON, only ever in memory
+
+function setMode(mode) {
+  const inReport = mode === 'report';
+  viewPrepare.hidden = inReport;
+  viewReport.hidden = !inReport;
+  tabPrepare.classList.toggle('is-active', !inReport);
+  tabReport.classList.toggle('is-active', inReport);
+  if (inReport && !report) renderEmptyReport();
+  window.scrollTo(0, 0);
+}
+tabPrepare.addEventListener('click', () => setMode('prepare'));
+tabReport.addEventListener('click', () => setMode('report'));
+document.getElementById('home-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  setMode('prepare');
+});
+
+function extractJson(rawText) {
+  let t = String(rawText).trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  if (!t.startsWith('{')) {
+    const s = t.indexOf('{');
+    const e = t.lastIndexOf('}');
+    if (s >= 0 && e > s) t = t.slice(s, e + 1);
+  }
+  return JSON.parse(t);
+}
+
+const jsonInput = document.getElementById('json-input');
+const pasteError = document.getElementById('paste-error');
+
+document.getElementById('read-report').addEventListener('click', () => {
+  if (!jsonInput.value.trim()) {
+    pasteError.hidden = false;
+    pasteError.textContent = 'Nothing to read yet — paste the JSON reply from your AI assistant above.';
+    jsonInput.focus();
+    return;
+  }
+  try {
+    const data = extractJson(jsonInput.value);
+    pasteError.hidden = true;
+    report = data;
+    renderReport(data, { asked: recall('c-rexx-last-asked'), sources: currentSources() });
+    setMode('report');
+  } catch (err) {
+    pasteError.hidden = false;
+    pasteError.textContent = 'That did not parse as JSON.\n' + err.message +
+      '\nCheck that you copied the assistant’s complete reply — a long reply may have been cut off.';
+  }
+});
+
+document.getElementById('load-sample').addEventListener('click', () => {
+  report = SAMPLE_REPORT;
+  renderReport(SAMPLE_REPORT, {
+    sample: true,
+    asked: SAMPLE_REPORT.heuristics_run,
+    sources: [{ name: 'LATEFEE.cbl', role: 'PROGRAM', lines: splitLines(textBlock('sample-source')) }],
+  });
+  setMode('report');
+});
+
+function renderEmptyReport() {
+  mount(viewReport, html`
+    <div class="report-empty">
+      <h2>No report loaded yet</h2>
+      <p>Paste a C-REXX JSON reply in <strong>Prepare</strong> and it renders here.</p>
+      <button class="btn btn-primary" type="button" data-act="go-prepare">Go to Prepare</button>
+    </div>`);
+}
+
+/* ================================================================
+   Citations — the quote is the anchor
+   ================================================================ */
+
+const CITES = new WeakMap();
+let SOURCES = [];
+
+function normal(s) { return String(s).replace(/\s+/g, ' ').trim().toUpperCase(); }
+
+function lineRange(lines) {
+  const m = String(lines ?? '').match(/(\d+)(?:\s*-\s*(\d+))?/);
+  return m ? [Number(m[1]), Number(m[2] || m[1])] : null;
+}
+
+function sourceFor(name) {
+  if (!has(name)) return null;
+  const n = String(name).trim().toUpperCase();
+  const base = s => s.toUpperCase().replace(/\.[^.]*$/, '');
+  return SOURCES.find(s => s.name.toUpperCase() === n) ||
+    SOURCES.find(s => base(s.name) === base(n)) || null;
+}
+
+function findQuote(src, q, from = 1, to = src.lines.length) {
+  for (let i = Math.max(1, from); i <= Math.min(src.lines.length, to); i++) {
+    if (normal(src.lines[i - 1]).includes(q)) return i;
+  }
+  return 0;
+}
+
+// status: found | elsewhere | missing | unchecked | none
+function checkCitation(c) {
+  const q = normal(c.quote ?? '');
+  if (!SOURCES.length) return { status: 'unchecked' };
+  if (!q) return { status: 'none' };
+  const home = sourceFor(c.file);
+  const range = lineRange(c.lines);
+  if (home && range) {
+    const at = findQuote(home, q, range[0] - 3, range[1] + 3);
+    if (at) return { status: 'found', src: home, at };
+  }
+  if (home) {
+    const at = findQuote(home, q);
+    if (at) return { status: range ? 'elsewhere' : 'found', src: home, at };
+  }
+  for (const src of SOURCES) {
+    if (src === home) continue;
+    const at = findQuote(src, q);
+    if (at) return { status: 'elsewhere', src, at };
+  }
+  return { status: 'missing' };
+}
+
+function checkAllCitations(node, tally) {
+  if (Array.isArray(node)) { node.forEach(n => checkAllCitations(n, tally)); return; }
+  if (!node || typeof node !== 'object') return;
+  for (const [k, v] of Object.entries(node)) {
+    if ((k === 'citation' || k === 'comment_citation') && v && typeof v === 'object') {
+      const result = checkCitation(v);
+      CITES.set(v, result);
+      tally[result.status] = (tally[result.status] || 0) + 1;
+    } else {
+      checkAllCitations(v, tally);
+    }
+  }
+}
+
+const CITE_CHIP = {
+  found: ['good', 'quote found'],
+  elsewhere: ['warn', 'quote found elsewhere'],
+  missing: ['bad', 'quote not found'],
+  unchecked: ['slate', 'not checked — no source here'],
+  none: ['slate', 'no quote given'],
+};
+
+function citeView(c, label) {
+  if (!c || typeof c !== 'object') return '';
+  const r = CITES.get(c) || checkCitation(c);
+  const [tone, word] = CITE_CHIP[r.status];
+  const where = [c.file, c.label, has(c.lines) ? 'line ' + c.lines : null].filter(has).join(' · ');
+  const moved = r.status === 'elsewhere' ? ` · at ${r.src.name === c.file ? '' : r.src.name + ' '}line ${r.at}` : '';
+  let fold = '';
+  if (r.src) {
+    const range = lineRange(c.lines);
+    const span = r.status === 'found' && range ? range : [r.at, r.at];
+    const from = Math.max(1, Math.min(span[0], r.at) - 1);
+    const to = Math.min(r.src.lines.length, Math.max(span[1], r.at) + 1, from + 14);
+    const shown = [];
+    for (let i = from; i <= to; i++) {
+      shown.push(html`<span class="${i === r.at ? 'is-hit' : ''}"><i>${String(i).padStart(5)}</i>${r.src.lines[i - 1]}</span>`);
+    }
+    fold = html`<details class="fold"><summary>show source</summary><pre class="src">${shown}</pre></details>`;
+  }
+  return html`
+    <div class="cite">
+      ${label ? html`<span class="kicker" style="margin:0">${label}</span>` : ''}
+      <span>${where || 'no location given'}</span>
+      <span class="chip chip-${tone}">${word}${moved}</span>
+      ${has(c.quote) ? html`<span class="cite-quote">${c.quote}</span>` : ''}
+    </div>
+    ${fold}`;
+}
+
+/* ================================================================
+   Module views
+   ================================================================ */
+
+const FIELD_TONES = {
+  severity: { HIGH: 'bad', MEDIUM: 'warn', LOW: 'slate' },
+  confidence: { HIGH: 'good', MEDIUM: 'warn', LOW: 'bad' },
+  grade: { OBSERVED: 'good', INFERRED: 'info', SPECULATIVE: 'slate' },
+  urgency: { IMMINENT: 'bad', DISTANT: 'warn', CAPACITY_RISK: 'warn' },
+  outcome: { HANDLED: 'good', ABENDS: 'bad', WRONG_OUTPUT: 'bad', UNKNOWN: 'slate' },
+  status: { DEAD: 'warn', POSSIBLY_DEAD: 'slate', ACTIVE_SPECIAL_CASE: 'warn', EXPIRED: 'warn', UNCLEAR: 'slate' },
+  direction: { READ: 'info', WRITE: 'warn', UPDATE: 'warn', APPEND: 'warn', DELETE: 'bad', SUBMIT: 'bad' },
+};
+const RATING_TONES = {
+  STRUCTURED: 'good', DISCIPLINED_GOTO: 'info', TANGLED: 'warn', ALTERED: 'bad',
+  CLEAN: 'good', MIXED_STYLE: 'warn', SUSPECT_SCOPE: 'bad',
+  RC_DELIBERATE: 'good', RC_ACCIDENTAL: 'bad', RC_ALWAYS_ZERO: 'warn', RC_UNKNOWN: 'slate',
+  GUARDED: 'good', UNGUARDED: 'bad', 'N/A': 'slate', CHECKED: 'good', UNCHECKED: 'bad',
+  PORTABLE: 'good', EBCDIC_DEPENDENT: 'warn', THOROUGH: 'good', PARTIAL: 'warn', ABSENT: 'bad',
+  RERUNNABLE: 'good', RERUN_WITH_CLEANUP: 'warn', NOT_RERUNNABLE: 'bad', UNKNOWN: 'slate',
+  VERIFIED_ORDER: 'good', ASSUMED_ORDER: 'warn', RECONCILED: 'good', COUNTED_NOT_BALANCED: 'warn', SILENT: 'bad',
+  SERVICEABLE: 'info', STRAINED: 'warn', HAZARDOUS: 'bad',
+  PARAMETERISED: 'good', PARTLY: 'warn', HARDCODED: 'bad',
+  NONE_SEEN: 'good', MINOR: 'warn', SIGNIFICANT: 'bad',
+  CLEAN_SEAMS: 'good', ENTANGLED: 'warn', MONOLITHIC: 'bad',
+};
+const TONE_RANK = { bad: 4, warn: 3, info: 2, good: 1, slate: 0 };
+
+function tone(field, value) {
+  return (FIELD_TONES[field] && FIELD_TONES[field][value]) || RATING_TONES[value] || 'slate';
+}
+function isOffSchema(value) {
+  return typeof value === 'string' && /^[A-Z][A-Z0-9_\/]*$/.test(value) && !ALL_ENUM_VALUES.has(value);
+}
+function chip(value, field) {
+  if (!has(value)) return '';
+  const off = isOffSchema(value);
+  return html`<span class="chip chip-${off ? 'slate' : tone(field, value)}" title="${off ? 'Not one of the schema’s values' : field}">${humanize(value)}${off ? ' · off-schema' : ''}</span>`;
+}
+function allClear(text) {
+  return html`<p class="all-clear">&#10003; ${text}</p>`;
+}
+function ratingRow(label, value, field = 'rating') {
+  return has(value) ? html`<div class="chip-row" style="margin-bottom:14px"><span class="kicker" style="margin:0">${label}</span>${chip(value, field)}</div>` : '';
+}
+function extra(label, value) {
+  return has(value) ? html`<p class="extra"><span class="kicker">${label}</span>${typeof value === 'object' ? JSON.stringify(value) : String(value)}</p>` : '';
+}
+
+// One finding card: chips across the top, the finding, labelled extras, the citation.
+function findingCard(item, spec = {}) {
+  const it = obj(item);
+  const chipFields = spec.chips || ['kind', 'check', 'status', 'operation', 'severity', 'urgency'];
+  const sev = has(it.severity) ? 'sev-' + String(it.severity).toLowerCase() : '';
+  return html`
+    <div class="mini-card finding-card ${sev}">
+      <div class="mini-card-head">
+        ${spec.title && has(it[spec.title]) ? html`<span class="mini-card-title">${it[spec.title]}</span>` : ''}
+        ${chipFields.filter(f => has(it[f])).map(f => chip(it[f], f))}
+        ${chip(it.grade, 'grade')}
+      </div>
+      ${has(it.finding) ? html`<p class="finding-text">${it.finding}</p>` : ''}
+      ${(spec.extras || []).map(([f, label]) => extra(label, it[f]))}
+      ${citeView(it.citation)}
+      ${it.comment_citation ? citeView(it.comment_citation, 'comment') : ''}
+    </div>`;
+}
+function findingList(items, spec = {}, empty = 'Nothing found.') {
+  const list = arr(items);
+  return list.length ? html`<div class="card-grid">${list.map(i => findingCard(i, spec))}</div>` : allClear(empty);
+}
+function subhead(text) {
+  return html`<span class="kicker" style="margin:18px 0 8px">${text}</span>`;
+}
+
+// The generic view: an optional rating, optional facts, then one or more finding lists.
+function listView({ rating, ratingLabel = 'Rating', facts = [], lists = [{ key: 'items' }] }) {
+  return (b) => html`
+    ${rating ? ratingRow(ratingLabel, b[rating]) : ''}
+    ${facts.length ? html`<div class="chip-row" style="margin-bottom:12px">${facts.filter(([f]) => b[f] !== undefined && b[f] !== null).map(([f, label]) => html`<span class="tag">${label}: ${String(b[f])}</span>`)}</div>` : ''}
+    ${lists.map(l => html`${l.label ? subhead(l.label) : ''}${findingList(b[l.key], l, l.empty)}`)}`;
+}
+
+function table(headers, rows) {
+  return html`<div class="dt-wrap"><table class="dt"><thead><tr>${headers.map(h => html`<th>${h}</th>`)}</tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+const VIEWS = {
+  purpose: b => html`
+    <p class="finding-text" style="font-family:var(--serif);font-size:17px"><strong>${b.one_line || 'No purpose given.'}</strong></p>
+    ${has(b.detail) ? html`<p>${b.detail}</p>` : ''}
+    ${ratingRow('Confidence', b.confidence, 'confidence')}
+    ${subhead('Basis')}${findingList(b.basis, {}, 'No basis given.')}`,
+
+  execution_context: b => html`
+    ${ratingRow('Context', b.context, 'context')}
+    ${extra('Inputs at invocation', b.inputs_at_invocation)}
+    ${subhead('Evidence')}${findingList(b.evidence, {}, 'No evidence given.')}`,
+
+  io_contract: b => arr(b.items).length ? table(['Name', 'Kind', 'DD / resource', 'Direction', 'Layout'],
+    arr(b.items).map(i => html`
+      <tr><td class="mono">${i.name}</td><td>${chip(i.kind, 'kind')}</td><td class="mono">${i.dd_or_resource ?? '—'}</td>
+        <td>${chip(i.direction, 'direction')}</td><td class="mono">${i.layout ?? '—'}</td></tr>
+      <tr><td colspan="5" style="padding-top:0">${chip(i.grade, 'grade')} ${citeView(i.citation)}</td></tr>`))
+    : allClear('No external resources found.'),
+
+  dependencies: b => arr(b.items).length ? table(['Name', 'Kind', 'Possible targets'],
+    arr(b.items).map(i => html`
+      <tr><td class="mono">${i.name}</td><td>${chip(i.kind, 'kind')}</td><td class="mono">${arr(i.possible_targets).join(', ') || '—'}</td></tr>
+      <tr><td colspan="3" style="padding-top:0">${chip(i.grade, 'grade')} ${citeView(i.citation)}</td></tr>`))
+    : allClear('No dependencies found.'),
+
+  skeleton: b => html`
+    ${subhead('Mainline')}
+    ${arr(b.mainline).length ? html`<div class="card-grid">${arr(b.mainline).map((s, i) => html`
+      <div class="mini-card">
+        <div class="mini-card-head"><span class="mini-card-title">${i + 1}. ${s.label || ''}</span>${has(s.repeats) && s.repeats !== 'once' ? html`<span class="chip chip-info">${s.repeats}</span>` : ''}</div>
+        <p class="finding-text">${s.step}</p>${citeView(s.citation)}
+      </div>`)}</div>` : html`<p class="not-provided">No mainline given.</p>`}
+    ${subhead('Call tree')}${callTree(arr(b.edges))}`,
+
+  thru_hazards: b => html`
+    ${subhead('THRU ranges')}
+    ${arr(b.ranges).length ? html`<div class="card-grid">${arr(b.ranges).map(r => html`
+      <div class="mini-card"><div class="mini-card-head"><span class="mini-card-title">${r.from} THRU ${r.to}</span></div>
+      <div>${arr(r.paragraphs_inside).map(p => html`<span class="tag">${p}</span>`)}</div></div>`)}</div>`
+      : allClear('No PERFORM THRU ranges.')}
+    ${subhead('Hazards')}${findingList(b.hazards, {}, 'No THRU hazards found.')}`,
+
+  scope_traps: listView({ rating: 'rating', lists: [{ key: 'items', extras: [['what_actually_runs', 'What actually runs']], empty: 'No scope traps found.' }] }),
+
+  termination: b => html`
+    ${ratingRow('Return code', b.rc_rating)}
+    ${subhead('Ways it ends')}
+    ${arr(b.paths).length ? html`<div class="card-grid">${arr(b.paths).map(p => html`
+      <div class="mini-card"><div class="mini-card-head">${chip(p.how, 'how')}${chip(p.grade, 'grade')}</div>
+      ${extra('When', p.condition)}${extra('Return code', p.return_code ?? 'none set')}${citeView(p.citation)}</div>`)}</div>`
+      : html`<p class="not-provided">No endings given.</p>`}
+    ${subhead('Return-code leakage')}${findingList(b.leakage, {}, 'No leakage found.')}`,
+
+  field_lineage: b => arr(b.fields).length ? html`<div class="card-grid">${arr(b.fields).map(f => html`
+    <div class="mini-card">
+      <div class="mini-card-head"><span class="mini-card-title">${f.field}</span></div>
+      ${has(f.why_key) ? html`<p class="finding-text">${f.why_key}</p>` : ''}
+      <ol class="lineage">${arr(f.steps).map(s => html`<li><span class="tag">${humanize(s.action)}</span>${s.detail}${citeView(s.citation)}</li>`)}</ol>
+      ${extra('Ends in', f.ends_in ?? 'consumed inside the program')}
+    </div>`)}</div>` : allClear('No fields traced.'),
+
+  edge_inputs: b => arr(b.cases).length ? html`<div class="card-grid">${arr(b.cases).map(c => html`
+    <div class="mini-card finding-card ${c.outcome === 'HANDLED' ? '' : c.outcome === 'UNKNOWN' ? 'sev-low' : 'sev-high'}">
+      <div class="mini-card-head"><span class="mini-card-title">${humanize(c.case)} · ${c.input}</span>${chip(c.outcome, 'outcome')}${chip(c.grade, 'grade')}</div>
+      <p class="finding-text">${c.explanation}</p>${citeView(c.citation)}
+    </div>`)}</div>` : allClear('No cases walked.'),
+
+  rerun: b => html`
+    ${ratingRow('Rerun', b.rating)}
+    ${arr(b.cleanup_steps).length ? html`${subhead('Cleanup before a rerun')}<ol class="sig-list" style="list-style:decimal;padding-left:20px">${arr(b.cleanup_steps).map(s => html`<li style="padding-left:2px">${s}</li>`)}</ol>` : ''}
+    ${subhead('Factors')}${findingList(b.factors, {}, 'No factors given.')}`,
+
+  business_rules: b => arr(b.rules).length ? html`<div class="card-grid">${arr(b.rules).map((r, i) => html`
+    <div class="mini-card">
+      <div class="mini-card-head"><span class="mini-card-title">Rule ${i + 1}</span>${chip(r.grade, 'grade')}</div>
+      <p class="finding-text"><strong>${r.rule}</strong></p>
+      ${extra('When', r.condition)}${extra('Then', r.action)}${citeView(r.citation)}
+    </div>`)}</div>` : allClear('No business rules found.'),
+
+  reconciliation: b => html`
+    ${ratingRow('Reconciliation', b.rating)}
+    ${arr(b.counters).length ? table(['Counter', 'Counts', 'Reported'], arr(b.counters).map(c => html`
+      <tr><td class="mono">${c.name}</td><td>${c.counts}</td><td>${c.reported ? 'yes' : 'no'}</td></tr>
+      <tr><td colspan="3" style="padding-top:0">${citeView(c.citation)}</td></tr>`)) : html`<p class="not-provided">No counters.</p>`}
+    ${extra('Rejects go to', b.rejects_go_to ?? 'nowhere — they vanish')}`,
+
+  era: b => html`
+    ${ratingRow('Dialect', b.dialect, 'dialect')}
+    <div class="chip-row" style="margin-bottom:12px">
+      ${has(b.earliest_date_seen) ? html`<span class="tag">earliest date: ${b.earliest_date_seen}</span>` : ''}
+      ${has(b.latest_date_seen) ? html`<span class="tag">latest date: ${b.latest_date_seen}</span>` : ''}
+    </div>
+    ${subhead('Evidence')}${findingList(b.evidence, {}, 'No evidence given.')}
+    ${subhead('Compiler-upgrade risks')}${findingList(b.upgrade_risks, {}, 'No upgrade risks found.')}`,
+
+  structure: b => {
+    const m = obj(b.metrics);
+    return html`
+      ${ratingRow('Health', b.rating)}
+      <div class="chip-row" style="margin-bottom:12px">
+        ${m.paragraph_count != null ? html`<span class="tag">paragraphs: ${m.paragraph_count}</span>` : ''}
+        ${has(m.largest_label) ? html`<span class="tag">largest: ${m.largest_label}${m.largest_lines != null ? ` (${m.largest_lines} lines)` : ''}</span>` : ''}
+        ${m.max_nesting != null ? html`<span class="tag">max nesting: ${m.max_nesting}</span>` : ''}
+      </div>
+      ${subhead('Reasons')}${findingList(b.reasons, {}, 'No reasons given.')}`;
+  },
+
+  test_recipe: b => arr(b.cases).length ? table(['Case', 'Input', 'Expected', 'Reaches', 'From'],
+    arr(b.cases).map(c => html`<tr><td><strong>${c.case}</strong></td><td>${c.input_condition}</td><td>${c.expected_path}</td>
+      <td class="mono">${arr(c.reaches).join(', ')}</td><td class="mono">${c.from ?? '—'}</td></tr>`))
+    : allClear('No test cases given.'),
+
+  seams: listView({ rating: 'rating', lists: [
+    { key: 'seams', label: 'Seams', empty: 'No seams found.' },
+    { key: 'blockers', label: 'Blockers', empty: 'No blockers found.' }] }),
+
+  owner_questions: b => arr(b.items).length ? html`
+    <ol class="smoke-q-list" style="padding-left:20px">${arr(b.items).map(q => html`
+      <li style="margin-bottom:10px"><strong>${q.question}</strong>
+        ${has(q.why_it_matters) ? html`<br><span style="color:var(--ink-soft)">${q.why_it_matters}</span>` : ''}
+        ${has(q.raised_by) ? html` <span class="tag">${BY_KEY[q.raised_by] ? BY_KEY[q.raised_by].title : q.raised_by}</span>` : ''}</li>`)}</ol>
+    <button class="btn" type="button" data-act="copy-questions">Copy questions</button>`
+    : allClear('No open questions.'),
+
+  unstructured_control: listView({ rating: 'rating', lists: [{ key: 'items', empty: 'No unstructured control found.' }] }),
+  dead_code: listView({ lists: [{ key: 'items', empty: 'No dead code or data found.' }] }),
+  truncation: listView({ lists: [{ key: 'items', extras: [['from_field', 'From'], ['to_field', 'To']], empty: 'No silent truncation found.' }] }),
+  arithmetic: listView({ facts: [['rexx_numeric_digits', 'NUMERIC DIGITS']], lists: [{ key: 'items', empty: 'No arithmetic hazards found.' }] }),
+  bad_data: listView({ rating: 'rating', lists: [{ key: 'items', title: 'field', extras: [['source', 'Comes from']], empty: 'No unguarded numerics found.' }] }),
+  uninitialised: listView({ facts: [['novalue_trapped', 'NOVALUE trapped']], lists: [{ key: 'items', empty: 'No uninitialised state found.' }] }),
+  bounds: listView({ rating: 'rating', lists: [{ key: 'items', title: 'table', empty: 'No unchecked tables found.' }] }),
+  ebcdic: listView({ rating: 'rating', lists: [{ key: 'items', extras: [['breaks_when', 'Breaks when']], empty: 'No EBCDIC dependence found.' }] }),
+  status_checks: listView({ rating: 'rating', facts: [['checked_count', 'checked operations']], lists: [{ key: 'unchecked', label: 'Unchecked operations', empty: 'Every operation is checked.' }] }),
+  swallowed: listView({ lists: [{ key: 'items', extras: [['consequence', 'Consequence']], empty: 'No swallowed failures found.' }] }),
+  fossils: listView({ lists: [{ key: 'items', extras: [['hardcoded_value', 'Value'], ['history', 'History']], empty: 'No hardcoded special cases found.' }] }),
+  time_bombs: listView({ lists: [{ key: 'items', extras: [['trigger', 'Trigger'], ['when', 'When']], empty: 'No time bombs found.' }] }),
+  ordering: listView({ rating: 'rating', lists: [{ key: 'items', empty: 'No ordering assumptions found.' }] }),
+  side_effects: listView({ lists: [{ key: 'items', empty: 'No hidden side effects found.' }] }),
+  name_drift: listView({ lists: [{ key: 'items', title: 'name', extras: [['implies', 'Name implies'], ['actually', 'Actually']], empty: 'Names match behaviour.' }] }),
+  stale_comments: listView({ lists: [{ key: 'items', extras: [['comment_says', 'Comment says'], ['code_does', 'Code does']], empty: 'No stale comments found.' }] }),
+  rexx_traps: listView({ lists: [{ key: 'items', empty: 'No REXX traps found.' }] }),
+  hotspots: listView({ lists: [{ key: 'items', extras: [['why_risky', 'Why risky'], ['safe_change_advice', 'Change it safely']], empty: 'No hotspots named.' }] }),
+  hardcoding: listView({ rating: 'rating', lists: [{ key: 'items', extras: [['value', 'Value']], empty: 'No hardcoding found.' }] }),
+  security: listView({ lists: [{ key: 'items', empty: 'No security findings.' }] }),
+  performance: listView({ rating: 'rating', lists: [{ key: 'items', extras: [['impact', 'Impact']], empty: 'No performance smells found.' }] }),
+};
+
+function callTree(edges) {
+  if (!edges.length) return html`<p class="not-provided">No edges given.</p>`;
+  const out = {};
+  edges.forEach(e => (out[e.from] ||= []).push(e));
+  const targets = new Set(edges.map(e => e.to));
+  const roots = Object.keys(out).filter(f => !targets.has(f));
+  const shown = new Set();
+  const node = (name, kind) => {
+    const kids = out[name] || [];
+    const again = shown.has(name) && kids.length;
+    shown.add(name);
+    return html`<li>${name}${kind ? html`<span class="edge-kind">${humanize(kind)}</span>` : ''}${again ? html`<span class="edge-kind">&#8634; expanded above</span>`
+      : kids.length ? html`<ul>${kids.map(k => node(k.to, k.kind))}</ul>` : ''}</li>`;
+  };
+  return html`<ul class="tree">${(roots.length ? roots : [edges[0].from]).map(r => node(r))}</ul>`;
+}
+
+// worst tone among a block's ratings and per-item enums: the rail dot
+function blockTone(b) {
+  const rating = b.rating || b.rc_rating;
+  if (has(rating)) return tone('rating', rating);
+  let worst = null;
+  let count = 0;
+  const visit = (v) => {
+    if (Array.isArray(v)) { count += v.length; v.forEach(visit); return; }
+    if (!v || typeof v !== 'object') return;
+    ['severity', 'outcome', 'urgency', 'status'].forEach(f => {
+      if (has(v[f])) {
+        const t = tone(f, v[f]);
+        if (!worst || TONE_RANK[t] > TONE_RANK[worst]) worst = t;
+      }
+    });
+    Object.entries(v).forEach(([k, x]) => { if (k !== 'citation' && k !== 'comment_citation') visit(x); });
+  };
+  visit(b);
+  return worst || (count ? 'info' : 'good');
+}
+function blockCount(b) {
+  const first = Object.values(b).find(Array.isArray);
+  return first ? first.length : null;
+}
+
+/* ================================================================
+   The report
+   ================================================================ */
+
+const TILES = [
+  { label: 'Purpose', key: 'purpose', value: b => b.confidence, field: 'confidence' },
+  { label: 'Health', key: 'structure', value: b => b.rating },
+  { label: 'Rerun', key: 'rerun', value: b => b.rating },
+  { label: 'Error checks', key: 'status_checks', value: b => b.rating },
+  { label: 'Time bombs', key: 'time_bombs', count: b => arr(b.items), worst: items => items.some(i => i.urgency === 'IMMINENT') ? 'bad' : 'warn' },
+];
+
+function tilesView(d, mods, missing) {
+  const tiles = TILES.map(t => {
+    const b = mods[t.key];
+    if (!b && missing.includes(t.key)) return html`<div class="tile"><span class="tile-label">${t.label}</span><span class="chip chip-bad">missing from reply</span></div>`;
+    if (!b) return html`<div class="tile"><span class="tile-label">${t.label}</span><span class="chip chip-slate">not run</span></div>`;
+    if (t.count) {
+      const items = t.count(b);
+      return html`<div class="tile"><span class="tile-label">${t.label}</span><span class="chip chip-${items.length ? t.worst(items) : 'good'}">${items.length ? items.length + ' found' : 'none found'}</span></div>`;
+    }
+    return html`<div class="tile"><span class="tile-label">${t.label}</span>${chip(t.value(b), t.field || 'rating') || html`<span class="chip chip-slate">not given</span>`}</div>`;
+  });
+  const blind = arr(d.blind_spots).length;
+  tiles.push(html`<div class="tile"><span class="tile-label">Blind spots</span><span class="chip chip-${blind ? 'warn' : 'good'}">${blind ? blind + ' unseen' : 'none'}</span></div>`);
+  return html`<div class="tiles">${tiles}</div>`;
+}
+
+function checksFor(d, mods, asked) {
+  const checks = [];
+  const add = (level, text) => checks.push({ level, text });
+  if (d.jig !== 'c-rexx') add('warn', `The reply names its jig as "${d.jig ?? 'nothing'}", not c-rexx — it may be from another prompt.`);
+  if (d.schema_version !== 1) add('warn', `Schema version ${d.schema_version ?? 'missing'}; this page reads version 1.`);
+
+  const run = arr(d.heuristics_run);
+  if (asked) {
+    const dropped = asked.filter(k => !run.includes(k));
+    const added = run.filter(k => !asked.includes(k));
+    if (dropped.length) add('warn', `Asked for but not listed as run: ${dropped.join(', ')}.`);
+    if (added.length) add('warn', `Run without being asked: ${added.join(', ')}.`);
+  } else {
+    add('warn', 'This page does not know what was asked (the prompt was copied in another tab or browser), so it cannot check for dropped modules.');
+  }
+  const expected = asked || run;
+  const missing = expected.filter(k => BY_KEY[k] && !(k in mods));
+  if (missing.length) add('bad', `Requested but missing from the reply: ${missing.map(k => BY_KEY[k].title).join(', ')}.`);
+  const unknown = Object.keys(mods).filter(k => !BY_KEY[k]);
+  if (unknown.length) add('warn', `Unknown module keys ignored: ${unknown.join(', ')}.`);
+
+  let off = 0;
+  const walk = (v, enums) => {
+    if (Array.isArray(v)) { v.forEach(x => walk(x, enums)); return; }
+    if (!v || typeof v !== 'object') return;
+    for (const [k, x] of Object.entries(v)) {
+      const allowed = enums[k] || GLOBAL_ENUMS[k];
+      if (typeof x === 'string' && allowed && !allowed.has(x)) off++;
+      else walk(x, enums);
+    }
+  };
+  Object.entries(mods).forEach(([k, b]) => BY_KEY[k] && walk(b, MODULE_ENUMS[k]));
+  if (off) add('warn', `${off} value${off > 1 ? 's are' : ' is'} outside the schema's lists; shown marked "off-schema".`);
+
+  const cov = obj(d.coverage);
+  if (cov.complete === false) add('bad', 'The model says it could not read all of the source — see Coverage.');
+  if (SOURCES.length) {
+    for (const f of arr(cov.files)) {
+      const src = sourceFor(f.name);
+      if (!src) continue;
+      const actual = src.lines.length;
+      if (typeof f.lines_seen === 'number' && (f.lines_seen < actual * 0.95 || f.lines_seen > actual * 1.05)) {
+        add('bad', `${f.name}: the model reports ${f.lines_seen} lines; the file has ${actual}. It may have read only part of it.`);
+      }
+      if (has(f.last_label) && !findQuote(src, normal(f.last_label))) {
+        add('warn', `${f.name}: the last label the model reports, ${f.last_label}, is not in the file.`);
+      }
+    }
+    for (const src of SOURCES) {
+      if (!arr(cov.files).some(f => sourceFor(f.name) === src)) add('warn', `${src.name} is not mentioned in the model's coverage.`);
+    }
+  } else {
+    add('warn', 'No source is open in this page, so coverage and citations cannot be checked.');
+  }
+  return checks;
+}
+
+function section(id, eyebrow, title, sub, body, star) {
+  return html`
+    <section class="panel" id="${id}">
+      <p class="eyebrow">${eyebrow}</p>
+      <h2 class="panel-title">${title}${star ? html` <span class="star" title="non-obvious">&#9733;</span>` : ''}</h2>
+      ${sub ? html`<p class="panel-sub">${sub}</p>` : ''}
+      ${body}
+    </section>`;
+}
+
+function renderReport(d, opts = {}) {
+  SOURCES = arr(opts.sources);
+  const mods = obj(d.modules);
+  const asked = Array.isArray(opts.asked) ? opts.asked : null;
+  const tally = {};
+  checkAllCitations(mods, tally);
+  const checks = checksFor(d, mods, asked);
+  const citeTotal = Object.values(tally).reduce((a, b) => a + b, 0);
+  if (tally.missing) checks.unshift({ level: 'bad', text: `${tally.missing} of ${citeTotal} citations quote code that is not in the file. Treat those findings as unsupported.` });
+  if (tally.elsewhere) checks.push({ level: 'warn', text: tally.elsewhere > 1 ? `${tally.elsewhere} citations quote real code, but at a different line from the one cited.` : '1 citation quotes real code, but at a different line from the one cited.' });
+
+  const checksTone = checks.some(c => c.level === 'bad') ? 'bad' : checks.length ? 'warn' : 'good';
+  const cov = obj(d.coverage);
+  const ran = MODULES.filter(m => m.key in mods);
+  const missingMods = MODULES.filter(m => !(m.key in mods) && (asked || arr(d.heuristics_run)).includes(m.key));
+  const notRun = MODULES.filter(m => !(m.key in mods) && !missingMods.includes(m));
+  const ctx = obj(mods.execution_context);
+  const era = obj(mods.era);
+
+  const rail = [
+    { id: 'sec-overview', label: 'Overview', dot: 'info' },
+    { id: 'sec-checks', label: 'Checks', dot: checksTone, count: checks.length || null },
+    { id: 'sec-coverage', label: 'Coverage', dot: cov.complete === false || arr(d.blind_spots).length ? 'warn' : 'good' },
+    ...ran.map(m => ({ id: 'sec-' + m.key, label: m.title, dot: blockTone(obj(mods[m.key])), count: blockCount(obj(mods[m.key])) })),
+    ...missingMods.map(m => ({ id: 'sec-' + m.key, label: m.title, dot: 'bad', count: '!' })),
+  ];
+
+  mount(viewReport, html`
+  <div class="report">
+    <nav class="rail" aria-label="Report sections">
+      <p class="rail-label">Reading${opts.sample ? ' · sample' : ''}</p>
+      ${rail.map(x => html`
+        <a href="#${x.id}" data-target="${x.id}">
+          <span class="rail-dot dot-${x.dot}"></span>
+          <span>${x.label}</span>
+          ${x.count ? html`<span class="rail-count">${x.count}</span>` : ''}
+        </a>`)}
+      <div class="rail-tools">
+        <button class="btn btn-primary" type="button" data-act="download-report">Download report</button>
+        ${mods.owner_questions ? html`<button class="btn" type="button" data-act="copy-questions">Copy questions</button>` : ''}
+        <button class="btn" type="button" data-act="go-prepare">New reading</button>
+      </div>
+    </nav>
+    <div class="sheet">
+      ${opts.sample ? html`<div class="sample-banner">Sample report for a fabricated 66-line COBOL program, LATEFEE, with deliberate defects. Its source is loaded, so the citation checks and "show source" folds work.</div>` : ''}
+      <section class="panel hero" id="sec-overview">
+        <p class="eyebrow">Program reading${opts.sample ? ' · sample' : ''}</p>
+        <h1 class="specimen-name">${d.program_name || 'Unnamed program'}</h1>
+        <div class="chip-row">
+          ${chip(d.language, 'language')}
+          ${chip(ctx.context, 'context')}
+          ${chip(era.dialect, 'dialect')}
+        </div>
+        ${mods.purpose && has(mods.purpose.one_line) ? html`<p class="narration" style="font-weight:700">${mods.purpose.one_line}</p>` : ''}
+        ${tilesView(d, mods, missingMods.map(m => m.key))}
+        ${has(d.executive_narration) ? html`<p class="narration">${d.executive_narration}</p>` : html`<p class="not-provided">No executive narration in the reply.</p>`}
+      </section>
+
+      ${section('sec-checks', 'Reply checks', 'What this page checked',
+        'Checks on the reply itself, before you trust any finding.', html`
+        ${checks.length ? html`<ul class="checks">${checks.map(c => html`<li class="c-${c.level}">${c.text}</li>`)}</ul>` : allClear('Every check passed.')}
+        ${citeTotal ? html`<p class="extra" style="margin-top:10px"><span class="kicker">Citations</span>${citeTotal} in total:
+          ${tally.found || 0} quote found, ${tally.elsewhere || 0} found elsewhere, ${tally.missing || 0} not found${tally.unchecked ? `, ${tally.unchecked} not checked` : ''}${tally.none ? `, ${tally.none} without a quote` : ''}.</p>` : ''}
+        <div class="q-block"><span class="q-label">What "quote found" means</span>
+          <p>The quoted code exists in your file, so the finding is about real code. It does <strong>not</strong>
+          mean the conclusion about that code is right. Read the cited lines yourself before acting on a
+          high-stakes finding &mdash; especially before deleting "dead" code or changing return codes.</p></div>`)}
+
+      ${section('sec-coverage', 'Always included', 'Coverage and blind spots',
+        'What the model says it read, and what it needed but did not have.', html`
+        <div class="chip-row" style="margin-bottom:14px"><span class="kicker" style="margin:0">Read everything</span>
+          <span class="chip chip-${cov.complete === true ? 'good' : cov.complete === false ? 'bad' : 'slate'}">${cov.complete === true ? 'yes' : cov.complete === false ? 'no' : 'not stated'}</span></div>
+        ${arr(cov.files).length ? table(['File', 'Role', 'Lines seen', 'Lines in file', 'First / last label', 'Gaps'],
+          arr(cov.files).map(f => {
+            const src = sourceFor(f.name);
+            return html`<tr><td class="mono">${f.name}</td><td>${chip(f.role, 'role')}</td><td class="mono">${f.lines_seen ?? '—'}</td>
+              <td class="mono">${src ? src.lines.length : 'not open here'}</td><td class="mono">${f.first_label ?? '—'} / ${f.last_label ?? '—'}</td><td>${f.gaps ?? 'none'}</td></tr>`;
+          })) : html`<p class="not-provided">The reply has no coverage report.</p>`}
+        ${subhead('Blind spots')}
+        ${arr(d.blind_spots).length ? html`<div class="card-grid">${arr(d.blind_spots).map(s => html`
+          <div class="mini-card finding-card sev-medium">
+            <div class="mini-card-head"><span class="mini-card-title">${s.item}</span>${chip(s.kind, 'kind')}</div>
+            <p class="finding-text">${s.impact}</p>
+            ${arr(s.affects).length ? html`<div>${arr(s.affects).map(k => html`<span class="tag">${BY_KEY[k] ? BY_KEY[k].title : k}</span>`)}</div>` : ''}
+          </div>`)}</div>` : allClear('Nothing referenced was missing.')}`)}
+
+      ${MODULES.map(m => {
+        const g = GROUPS.find(x => x.id === m.group);
+        const eyebrow = `${m.code} · ${g.title}`;
+        if (m.key in mods) {
+          return section('sec-' + m.key, eyebrow, m.title, m.blurb, VIEWS[m.key](obj(mods[m.key])), m.star);
+        }
+        if (missingMods.includes(m)) {
+          return section('sec-' + m.key, eyebrow, m.title, m.blurb, html`<div class="paste-error">Requested, but missing from the reply. The model skipped it, or the reply was cut off. Ask the assistant to return the "${m.key}" module, or run again with fewer checks.</div>`, m.star);
+        }
+        return '';
+      })}
+
+      ${notRun.length ? section('sec-notrun', 'Not requested', 'Checks not run this time',
+        'Tick them in Prepare for another run.', html`<div class="notrun">${notRun.map(m => html`<span class="tag">${m.code} ${m.title}</span>`)}</div>`) : ''}
+    </div>
+  </div>`);
+
+  const links = Array.from(viewReport.querySelectorAll('.rail a'));
+  const sections = links.map(l => document.getElementById(l.dataset.target)).filter(Boolean);
+  if ('IntersectionObserver' in window && sections.length) {
+    const spy = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        links.forEach(l => l.classList.toggle('is-current', l.dataset.target === entry.target.id));
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => spy.observe(s));
+  }
+}
+
+delegate(viewReport, {
+  'go-prepare': () => setMode('prepare'),
+  'copy-questions': () => {
+    const d = obj(report);
+    const items = arr(obj(obj(d.modules).owner_questions).items);
+    const text = `Questions about ${d.program_name || 'the program'}\n` +
+      items.map((q, i) => `  ${i + 1}. ${q.question}${has(q.why_it_matters) ? `\n     (${q.why_it_matters})` : ''}`).join('\n') + '\n';
+    copyText(text, 'Questions copied');
+  },
+  'download-report': () => {
+    const { name, doc } = reportDocument();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' }));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    showToast('Report downloaded — ' + name);
+  },
+});
+
+// The report as its own HTML file: this page's styles, the rendered report (source folds included),
+// and no app controls, since copying and navigating need the app itself.
+function reportDocument() {
+  const d = obj(report);
+  const date = new Date().toISOString().slice(0, 10);
+  const program = has(d.program_name) ? String(d.program_name) : 'program';
+  const sheet = viewReport.cloneNode(true);
+  sheet.hidden = false;
+  sheet.querySelectorAll('[data-act], .rail-tools').forEach(el => el.remove());
+  sheet.querySelectorAll('.is-current').forEach(el => el.classList.remove('is-current'));
+  const css = document.querySelector('head style').textContent;
+  const page = html`<!doctype html>
+<html lang="en" data-theme="${appliedTheme()}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>C-REXX report — ${program} — ${date}</title>
+<style>${raw(css)}</style>
+</head>
+<body>
+<header class="masthead">
+  <span class="wordmark">
+    <span class="wordmark-gem">&#9670;</span>
+    <span class="wordmark-name">C-REXX</span>
+    <span class="wordmark-tag">saved report &middot; ${program} &middot; ${date}</span>
+  </span>
+</header>
+${raw(sheet.outerHTML)}
+<footer class="colophon">
+  Saved from C-REXX on ${date}. Citation tags reflect the source that was open in the page at the time;
+  "quote found" means the quoted code exists, not that the conclusion about it is right.
+</footer>
+</body>
+</html>
+`;
+  return { name: `c-rexx-${program.replace(/[^\w.-]+/g, '-')}-${date}.html`, doc: page[MARKUP] };
+}
+
+/* ================================================================
+   Build log — the owner's prompts to Claude Code that built this jig, verbatim, in order.
+   A teaching aid: how to ask an AI coding agent to build something like this.
+   ================================================================ */
+
+const BUILD_STEPS = [
+  { title: 'Know what a jig is',
+    body: 'A jig is one HTML file that does four things: it collects your input, wraps it in a long, precise prompt, asks the AI to reply with JSON in a fixed shape, and turns that JSON into a readable report. The fixed shape is what makes it work: because every reply has the same fields, the page can colour, sort, and check the answer. That is the difference from a chat transcript.' },
+  { title: 'Get an AI coding agent, not just a chat',
+    body: 'This page was built with Claude Code, an AI agent that reads and writes files in a folder on your machine, runs commands and tests, and can drive a browser to check its own work. You talk to it in plain English. You never need to edit the code yourself, though you can read every line.' },
+  { title: 'Pick one repeated job whose answer has a shape',
+    body: 'Good candidates are things you already ask a chat AI to do over and over, where you want the same kinds of answers each time: review this program, compare these two JCL decks, explain this abend, summarise this incident. If you can list the questions you would want answered, it can be a jig.' },
+  { title: 'Show an example, or describe the job, and ask it to propose',
+    body: 'Do not write a specification. Show it something that already works (here, an earlier jig), say what you need, and ask it to propose the checks. Ask for the non-obvious ones explicitly. It knows the territory, and you will see things you would not have thought to ask for.' },
+  { title: 'Supply the facts only you know',
+    body: 'It will come back with open questions. Answer them briefly: what your workplace allows, whether you can upload files or only paste, how big the inputs are, who will use the result. These facts change the design more than any technical choice.' },
+  { title: 'Decide, then say "go"',
+    body: 'Let it lay out the structure first (here: the list of checks, then the JSON contract), react to it, then tell it to build. Short replies are enough: "one", "later", "go". Ask "thoughts?" when you want its opinion, and "do we have a problem here?" when something worries you.' },
+  { title: 'Try it, then bring back what went wrong',
+    body: 'Open the sample first, then use the page on a real job. When the AI reply is wrong, cut off, or the report is confusing, paste exactly that back to the agent as your next prompt. Each round makes the jig sharper. Ask it to keep a written log of the decisions it made for you, so you can overrule any of them later.' },
+];
+
+const BUILD_PROMPTS = [
+  { said: 'check the inload folder for an example of the type of AI jigs we want this project to hold',
+    then: 'It read the example page (a resume reviewer) and described the pattern every jig shares: copy a prompt, run it in chat, paste the JSON reply back, read a report.' },
+  { said: 'so i need a jib to examine REXX and Cobol programs that run on a mainframe. so essentially i want you to come up with a useful set of heuristics that will make sense of a program, examining flow, purpose, code quality, all aspects of the code, not only the heuristics that would commonly be thought of, but some high value heuristics that might not come to mind at first.  i\'d like you to prepare a .md file of the heuristics you would propose',
+    then: 'A heuristics document of about 40 checks in eight groups, with a list of open questions — including the non-obvious ones (REXX NUMERIC DIGITS, EBCDIC gaps, PERFORM THRU ranges, rerun safety).' },
+  { said: 'if the code is small, i can paste it into our html page. however, i AM able to upload files to my ai prompt and then paste in a textual prompt',
+    then: 'Two delivery modes: paste for small programs, upload for large ones — plus a check that the AI actually read the whole uploaded file.' },
+  { when: 'sent while it was working',
+    said: 'the work ai is private to the organization, so there is no problem with proprietary info',
+    then: 'It dropped the planned redaction variant and recorded the decision.' },
+  { said: '1) C-REXX 2) a few programs are several thousand lines long, most are much shorter; 3) one; 4) later;  now let\'s discuss the jig.  it seems to me that the number of heuristics could become very large. maybe we should have the html spa display a checklist of heuristics that can be selected to be included. grouped, categorized, or something like that. this way the user can focus attention on what is important to them. thoughts?',
+    then: 'Four open questions settled in one line. Then the checklist design: a locked core, one-click lenses, a reply-size gauge, and each heuristic as a self-contained module.' },
+  { said: 'go ahead with the module list and schema',
+    then: 'The module catalog and the JSON contract between the prompt and the report.' },
+  { said: 'go',
+    then: 'The page itself, its tests, and a check in a real browser.' },
+  { when: 'sent while it was working, relaying a note from a second AI',
+    said: 'do we have a problem here?',
+    then: 'The note said "verified" overclaimed: finding the quoted code does not prove the conclusion. It agreed, renamed the labels to "quote found", and added a warning to every report.' },
+  { when: 'sent while it was working',
+    said: 'no phone needed. only desktop',
+    then: 'It stopped the phone-layout work and remembered the rule for future work.' },
+  { said: 'one more thing. i want a discreet button that when clicked, displays my prompts to you. (essentially, i am trying to teach a mainframer HOW to interact with YOU to build things)',
+    then: 'The "How this was built" link in the footer and this list.' },
+  { when: 'sent while it was working',
+    said: 'i need an explanation on HOW to build stuff like this',
+    then: 'The how-to steps at the top of this panel.' },
+  { said: 'and the last thing: after the user views the report, we need a [download] button that will download an html doc that IS THE ACTUAL REPORT, so they can save it somewhere',
+    then: 'A "Download report" button beside the report: it saves a standalone HTML file of the report as shown, styling and source folds included.' },
+  { when: 'sent while it was working — a clarification',
+    said: 'i want the user to be able to download the REPORT of the heuristics analysis of their code',
+    then: 'It confirmed the saved file is the analysis of the user\'s own program — every finding, rating, and cited source line — not the page or the prompt.' },
+];
+
+const buildLogHost = document.getElementById('build-log-host');
+function closeBuildLog() {
+  buildLogHost.innerHTML = '';
+  document.getElementById('show-build-log').focus();
+}
+document.getElementById('show-build-log').addEventListener('click', () => {
+  mount(buildLogHost, html`
+    <div class="buildlog-backdrop" data-act="close-log">
+      <div class="buildlog" role="dialog" aria-modal="true" aria-labelledby="buildlog-title">
+        <div class="buildlog-head">
+          <div>
+            <p class="eyebrow">How this was built</p>
+            <h2 class="panel-title" id="buildlog-title">Building a jig like this with an AI agent</h2>
+          </div>
+          <button class="btn" type="button" data-act="close-log">Close</button>
+        </div>
+        <p class="panel-sub">The owner did not write the code. An AI coding agent wrote the specs, the code, and
+        the tests; the owner supplied the intent, the facts, and the decisions. Here is the method, and then
+        every prompt that built this page.</p>
+        <ol class="buildlog-lessons">${BUILD_STEPS.map(s => html`<li><strong>${s.title}.</strong> ${s.body}</li>`)}</ol>
+        <p class="eyebrow" style="margin-top:26px">The prompts, word for word</p>
+        <p class="panel-sub">Typos included. Each is followed by a note on what came back. That is the whole
+        conversation from the owner's side: about a dozen messages, most of them short.</p>
+        <ol class="prompts">${BUILD_PROMPTS.map(p => html`
+          <li>
+            ${p.when ? html`<p class="prompt-when">${p.when}</p>` : ''}
+            <p class="prompt-said">${p.said}</p>
+            <p class="prompt-then">${p.then}</p>
+          </li>`)}</ol>
+      </div>
+    </div>`);
+  buildLogHost.querySelector('.buildlog .btn').focus();
+});
+delegate(buildLogHost, {
+  'close-log': (el, e) => {
+    if (el.classList.contains('buildlog-backdrop') && e.target !== el) return;
+    closeBuildLog();
+  },
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && buildLogHost.firstElementChild) closeBuildLog();
+});
+
+/* ---------------- start ---------------- */
+
+paintDelivery();
+paintLang();
+renderFiles();
+renderChecklist();
+</script>
+
+<script>
+'use strict';
+/* ================================================================
+   Sample reply — for the fabricated LATEFEE program in #sample-source.
+   Every quote must exist in that source; tests/c-rexx-sample.test.mjs holds it to that.
+   ================================================================ */
+
+const SAMPLE_FILE = 'LATEFEE.cbl';
+const sampleCite = (label, lines, quote) => ({ file: SAMPLE_FILE, label, lines, quote });
+
+const SAMPLE_REPORT = {
+  jig: 'c-rexx',
+  schema_version: 1,
+  heuristics_run: ['purpose', 'execution_context', 'io_contract', 'dependencies', 'skeleton', 'thru_hazards',
+    'scope_traps', 'termination', 'dead_code', 'bad_data', 'status_checks', 'edge_inputs', 'rerun',
+    'business_rules', 'fossils', 'time_bombs', 'structure', 'test_recipe', 'owner_questions'],
+  language: 'COBOL',
+  program_name: 'LATEFEE',
+  coverage: {
+    complete: true,
+    files: [{ name: SAMPLE_FILE, role: 'PROGRAM', lines_seen: 66, first_label: '0000-MAIN', last_label: '2999-EXIT', gaps: null }],
+  },
+  blind_spots: [
+    { item: 'RATE01', kind: 'CALLED_PROGRAM', affects: ['business_rules', 'termination', 'rerun'],
+      impact: 'How the fee is priced for each region, and what RETURN-CODE RATE01 leaves behind, cannot be seen.' },
+    { item: 'FEEOUT', kind: 'DD', affects: ['rerun', 'edge_inputs'],
+      impact: 'The DISP of the output dataset decides whether a rerun duplicates the fees or fails at allocation.' },
+  ],
+  modules: {
+    purpose: {
+      one_line: 'Nightly batch that reads account balances and writes a late-fee line for each account with a positive balance, priced by region through RATE01.',
+      detail: 'Reads ACCTIN sequentially, skips one exempt account, calls RATE01 to price a fee from region and balance, and writes one 40-byte fee line per charged account to FEEOUT. Prints a count of fees at the end.',
+      confidence: 'HIGH',
+      basis: [
+        { finding: 'The header comment names it a nightly late-fee assessment.', citation: sampleCite(null, '3', 'LATE FEE ASSESSMENT - NIGHTLY BATCH'), grade: 'OBSERVED' },
+        { finding: 'A fee is priced and counted only when the balance is above zero.', citation: sampleCite('2000-ASSESS', '55-57', 'IF AR-BALANCE > 0'), grade: 'OBSERVED' },
+      ],
+    },
+    execution_context: {
+      context: 'BATCH_MAIN',
+      evidence: [
+        { finding: 'Ends with STOP RUN and reads and writes through DD names, so it is a main batch program, not a subprogram.', citation: sampleCite('0000-MAIN', '44', 'STOP RUN.'), grade: 'OBSERVED' },
+      ],
+      inputs_at_invocation: null,
+    },
+    io_contract: {
+      items: [
+        { name: 'ACCT-FILE', kind: 'SEQUENTIAL', dd_or_resource: 'ACCTIN', direction: 'READ', layout: 'ACCT-REC', citation: sampleCite(null, '9', 'SELECT ACCT-FILE ASSIGN TO ACCTIN'), grade: 'OBSERVED' },
+        { name: 'FEE-FILE', kind: 'SEQUENTIAL', dd_or_resource: 'FEEOUT', direction: 'WRITE', layout: 'FEE-REC / WS-FEE-LINE', citation: sampleCite(null, '11', 'SELECT FEE-FILE ASSIGN TO FEEOUT.'), grade: 'OBSERVED' },
+        { name: 'Fee count message', kind: 'SYSOUT', dd_or_resource: null, direction: 'WRITE', layout: null, citation: sampleCite('0000-MAIN', '43', "DISPLAY 'FEES ASSESSED: ' WS-FEE-COUNT."), grade: 'OBSERVED' },
+      ],
+    },
+    dependencies: {
+      items: [
+        { name: 'RATE01', kind: 'DYNAMIC_CALL', possible_targets: ['RATE01'], citation: sampleCite('2000-ASSESS', '56', 'CALL WS-RATE-PGM USING AR-REGION AR-BALANCE WS-FEE-AMT'), grade: 'OBSERVED' },
+      ],
+    },
+    skeleton: {
+      mainline: [
+        { step: 'Open the account file for input and the fee file for output', label: '0000-MAIN', repeats: 'once', citation: sampleCite('0000-MAIN', '38', 'OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.') },
+        { step: 'Read the first account', label: '1000-READ', repeats: 'once', citation: sampleCite('0000-MAIN', '39', 'PERFORM 1000-READ.') },
+        { step: 'Assess each account, then read the next', label: '2000-ASSESS THRU 2999-EXIT', repeats: 'until the end of ACCTIN', citation: sampleCite('0000-MAIN', '40-41', 'PERFORM 2000-ASSESS THRU 2999-EXIT') },
+        { step: 'Close both files, print the fee count, end', label: '0000-MAIN', repeats: 'once', citation: sampleCite('0000-MAIN', '42-44', 'CLOSE ACCT-FILE FEE-FILE.') },
+      ],
+      edges: [
+        { from: '0000-MAIN', to: '1000-READ', kind: 'PERFORM' },
+        { from: '0000-MAIN', to: '2000-ASSESS', kind: 'PERFORM_THRU' },
+        { from: '2000-ASSESS', to: '2900-NEXT', kind: 'GO_TO' },
+        { from: '2000-ASSESS', to: 'RATE01', kind: 'CALL' },
+        { from: '2000-ASSESS', to: '2500-WRITE-FEE', kind: 'PERFORM' },
+        { from: '2900-NEXT', to: '1000-READ', kind: 'PERFORM' },
+      ],
+    },
+    thru_hazards: {
+      ranges: [{ from: '2000-ASSESS', to: '2999-EXIT', paragraphs_inside: ['2000-ASSESS', '2500-WRITE-FEE', '2900-NEXT', '2999-EXIT'] }],
+      hazards: [
+        { finding: '2500-WRITE-FEE sits inside the THRU range and is also PERFORMed from 2000-ASSESS. When that PERFORM returns, control falls through into 2500-WRITE-FEE again, so every account that is not exempt gets two identical fee lines.',
+          citation: sampleCite('2000-ASSESS', '58', 'PERFORM 2500-WRITE-FEE.'), grade: 'OBSERVED', kind: 'DUAL_USE_PARAGRAPH', severity: 'HIGH' },
+      ],
+    },
+    scope_traps: {
+      rating: 'SUSPECT_SCOPE',
+      items: [
+        { finding: 'The period after ADD 1 TO WS-FEE-COUNT ends the IF, so the PERFORM on the next line is outside it.',
+          citation: sampleCite('2000-ASSESS', '57', 'ADD 1 TO WS-FEE-COUNT.'), grade: 'OBSERVED', kind: 'STRAY_PERIOD', severity: 'HIGH',
+          what_actually_runs: 'Accounts with a zero or negative balance skip RATE01 but still get fee lines, written with whatever WS-FEE-AMT the previous account left, or with an uninitialised amount if no account has been priced yet.' },
+      ],
+    },
+    termination: {
+      rc_rating: 'RC_ACCIDENTAL',
+      paths: [
+        { how: 'STOP_RUN', condition: 'End of ACCTIN reached', return_code: 'Whatever RETURN-CODE RATE01 left on its last call; LATEFEE never sets it', citation: sampleCite('0000-MAIN', '44', 'STOP RUN.'), grade: 'INFERRED' },
+      ],
+      leakage: [
+        { finding: 'Each CALL to RATE01 sets RETURN-CODE. LATEFEE never resets it, so the job step ends with RATE01’s last return code, which may be non-zero on a normal run or zero after a pricing failure.',
+          citation: sampleCite('2000-ASSESS', '56', 'CALL WS-RATE-PGM USING AR-REGION AR-BALANCE WS-FEE-AMT'), grade: 'INFERRED' },
+      ],
+    },
+    dead_code: {
+      items: [
+        { finding: 'WS-DUE-CCYY is computed for every account and never read.', citation: sampleCite(null, '28', 'WS-DUE-CCYY PIC 9(4).'), grade: 'OBSERVED', kind: 'DATA_ITEM', status: 'DEAD' },
+        { finding: 'WS-ACCT-STAT receives the file status of ACCT-FILE and is never tested.', citation: sampleCite(null, '24', 'WS-ACCT-STAT PIC XX.'), grade: 'OBSERVED', kind: 'DATA_ITEM', status: 'DEAD' },
+        { finding: 'AR-DUE-MMDD is never referenced.', citation: sampleCite(null, '20', 'AR-DUE-MMDD PIC 9(4).'), grade: 'OBSERVED', kind: 'DATA_ITEM', status: 'DEAD' },
+      ],
+    },
+    bad_data: {
+      rating: 'UNGUARDED',
+      items: [
+        { finding: 'AR-BALANCE is packed decimal from the input file and is compared without an IS NUMERIC test. A bad packed field abends S0C7 on this line.',
+          citation: sampleCite('2000-ASSESS', '55', 'IF AR-BALANCE > 0'), grade: 'OBSERVED', field: 'AR-BALANCE', source: 'ACCTIN record (ACCT-REC)' },
+      ],
+    },
+    status_checks: {
+      rating: 'ABSENT',
+      checked_count: 0,
+      unchecked: [
+        { finding: 'OPEN of both files is not checked. FEE-FILE has no FILE STATUS clause at all.', citation: sampleCite('0000-MAIN', '38', 'OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.'), grade: 'OBSERVED', operation: 'OPEN' },
+        { finding: 'READ relies on AT END only; any other status is ignored.', citation: sampleCite('1000-READ', '46-47', 'READ ACCT-FILE'), grade: 'OBSERVED', operation: 'READ' },
+        { finding: 'WRITE of the fee line is not checked.', citation: sampleCite('2500-WRITE-FEE', '62', 'WRITE FEE-REC FROM WS-FEE-LINE.'), grade: 'OBSERVED', operation: 'WRITE' },
+        { finding: 'CLOSE is not checked.', citation: sampleCite('0000-MAIN', '42', 'CLOSE ACCT-FILE FEE-FILE.'), grade: 'OBSERVED', operation: 'CLOSE' },
+      ],
+    },
+    edge_inputs: {
+      cases: [
+        { case: 'EMPTY_INPUT', input: 'ACCTIN', outcome: 'HANDLED', explanation: 'The first READ hits AT END, the THRU loop never runs, the count prints 0000, and the step ends normally.', citation: sampleCite('1000-READ', '47', "AT END MOVE 'Y' TO WS-EOF."), grade: 'OBSERVED' },
+        { case: 'MISSING_DATASET', input: 'ACCTIN', outcome: 'WRONG_OUTPUT', explanation: 'Because FILE STATUS is declared, a failed OPEN does not abend. Every READ then fails without reaching AT END, WS-EOF never becomes Y, and the loop runs on an empty record area until the job is cancelled or FEEOUT fills.', citation: sampleCite('0000-MAIN', '38', 'OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.'), grade: 'INFERRED' },
+        { case: 'SINGLE_RECORD', input: 'ACCTIN', outcome: 'WRONG_OUTPUT', explanation: 'One chargeable account produces two identical fee lines (see PERFORM THRU hazards).', citation: sampleCite('2000-ASSESS', '58', 'PERFORM 2500-WRITE-FEE.'), grade: 'OBSERVED' },
+        { case: 'DUPLICATE_KEYS', input: 'ACCTIN', outcome: 'WRONG_OUTPUT', explanation: 'There is no key check, so a duplicated account record is charged again.', citation: sampleCite('0000-MAIN', '40', 'PERFORM 2000-ASSESS THRU 2999-EXIT'), grade: 'INFERRED' },
+      ],
+    },
+    rerun: {
+      rating: 'RERUN_WITH_CLEANUP',
+      cleanup_steps: ['Delete or empty the FEEOUT dataset from the failed run (check its DISP in the JCL).', 'Confirm with the RATE01 owner that pricing has no side effects of its own.'],
+      factors: [
+        { finding: 'FEEOUT is opened OUTPUT. If the JCL gives it DISP=MOD, a rerun appends a second set of fees.', citation: sampleCite('0000-MAIN', '38', 'OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.'), grade: 'SPECULATIVE', kind: 'MOD_OUTPUT' },
+        { finding: 'There are no database updates or commits, and ACCTIN is only read, so the input side is safe to read again.', citation: sampleCite(null, '9', 'SELECT ACCT-FILE ASSIGN TO ACCTIN'), grade: 'OBSERVED', kind: 'COMMIT_POSITION' },
+      ],
+    },
+    business_rules: {
+      rules: [
+        { rule: 'Account 0012345 is never charged a late fee.', condition: "AR-ACCT-NO = '0012345'", action: 'Skips straight to the next record', citation: sampleCite('2000-ASSESS', '49-50', "IF AR-ACCT-NO = '0012345'"), grade: 'OBSERVED' },
+        { rule: 'A late fee is meant only for accounts with a positive balance (see Period and scope traps for what actually happens).', condition: 'AR-BALANCE > 0', action: 'Prices the fee with RATE01 and counts it', citation: sampleCite('2000-ASSESS', '55-57', 'IF AR-BALANCE > 0'), grade: 'OBSERVED' },
+        { rule: 'The fee depends on the account’s region and balance.', condition: 'Every charged account', action: 'Passes AR-REGION and AR-BALANCE to RATE01, which returns WS-FEE-AMT', citation: sampleCite('2000-ASSESS', '56', 'CALL WS-RATE-PGM USING AR-REGION AR-BALANCE WS-FEE-AMT'), grade: 'INFERRED' },
+      ],
+    },
+    fossils: {
+      items: [
+        { finding: 'A hardcoded exemption for one account, added under ticket 44871.', citation: sampleCite('2000-ASSESS', '49', "IF AR-ACCT-NO = '0012345'"), grade: 'OBSERVED', status: 'UNCLEAR', hardcoded_value: "'0012345'", history: '2016-11-02 TMS TKT 44871' },
+        { finding: 'The two-digit year window computes WS-DUE-CCYY, but nothing reads WS-DUE-CCYY: Y2K remediation whose consumer is gone.', citation: sampleCite('2000-ASSESS', '51-54', 'IF AR-DUE-YY < 50'), grade: 'OBSERVED', status: 'EXPIRED', hardcoded_value: '50', history: '1998-03-12 RJK' },
+      ],
+    },
+    time_bombs: {
+      items: [
+        { finding: 'Due years 50–99 are read as 1950–1999, so a due date in 2050 becomes 1950. Harmless today only because the result is never used.', citation: sampleCite('2000-ASSESS', '51', 'IF AR-DUE-YY < 50'), grade: 'OBSERVED', kind: 'DATE_WINDOW', urgency: 'DISTANT', trigger: 'A due year of 2050 or later', when: '2050' },
+        { finding: 'WS-FEE-COUNT is PIC 9(4) and the ADD has no SIZE ERROR, so the 10,000th fee wraps the count back to 0000.', citation: sampleCite(null, '27', 'WS-FEE-COUNT PIC 9(4) VALUE 0.'), grade: 'OBSERVED', kind: 'COUNTER_WRAP', urgency: 'CAPACITY_RISK', trigger: 'More than 9,999 fees in one run', when: '10,000 fees' },
+      ],
+    },
+    structure: {
+      rating: 'HAZARDOUS',
+      reasons: [
+        { finding: 'A paragraph that is both PERFORMed and inside a THRU range writes every fee twice.', citation: sampleCite('2000-ASSESS', '58', 'PERFORM 2500-WRITE-FEE.'), grade: 'OBSERVED' },
+        { finding: 'A stray period moves the fee write outside its IF.', citation: sampleCite('2000-ASSESS', '57', 'ADD 1 TO WS-FEE-COUNT.'), grade: 'OBSERVED' },
+        { finding: 'No file operation is status-checked.', citation: sampleCite('0000-MAIN', '38', 'OPEN INPUT ACCT-FILE OUTPUT FEE-FILE.'), grade: 'OBSERVED' },
+      ],
+      metrics: { paragraph_count: 6, largest_label: '2000-ASSESS', largest_lines: 11, max_nesting: 1 },
+    },
+    test_recipe: {
+      cases: [
+        { case: 'Positive balance', input_condition: 'One record, balance 100.00, region 01', expected_path: 'One fee line (today: two)', reaches: ['2000-ASSESS', '2500-WRITE-FEE'], from: 'thru_hazards' },
+        { case: 'Zero balance', input_condition: 'One record, balance 0.00', expected_path: 'No fee line, count unchanged (today: a fee line with an unpriced amount)', reaches: ['2000-ASSESS', '2500-WRITE-FEE'], from: 'scope_traps' },
+        { case: 'Exempt account', input_condition: 'Account 0012345, balance 100.00', expected_path: 'No fee line', reaches: ['2000-ASSESS', '2900-NEXT'], from: null },
+        { case: 'Empty file', input_condition: 'ACCTIN with no records', expected_path: 'Count 0000, RC 0', reaches: ['1000-READ'], from: 'edge_inputs' },
+        { case: 'Missing input', input_condition: 'ACCTIN DD points at a dataset that does not exist', expected_path: 'A clear error and a non-zero RC (today: an endless loop)', reaches: ['0000-MAIN', '1000-READ'], from: 'edge_inputs' },
+        { case: 'Bad packed balance', input_condition: "Balance field of X'40404040404040'", expected_path: 'Record rejected (today: S0C7)', reaches: ['2000-ASSESS'], from: 'bad_data' },
+        { case: 'Volume', input_condition: '10,000 chargeable accounts', expected_path: 'Count 10000 (today: wraps to 0000)', reaches: ['2000-ASSESS'], from: 'time_bombs' },
+      ],
+    },
+    owner_questions: {
+      items: [
+        { question: 'Is account 0012345 still meant to be exempt from late fees?', raised_by: 'fossils', why_it_matters: 'If not, it has gone uncharged since 2016.' },
+        { question: 'Does downstream billing de-duplicate fee lines?', raised_by: 'thru_hazards', why_it_matters: 'If not, every charged account has been billed twice.' },
+        { question: 'What DISP does the JCL give FEEOUT?', raised_by: 'rerun', why_it_matters: 'Decides whether a rerun duplicates the fees or fails at allocation.' },
+        { question: 'What RETURN-CODE does RATE01 set, and does the scheduler act on this step’s RC?', raised_by: 'termination', why_it_matters: 'The step RC is currently whatever RATE01 returned last.' },
+      ],
+    },
+  },
+  executive_narration: 'LATEFEE is a small nightly batch program that charges late fees from an account file, with the price per region coming from a separate program, RATE01, that was not supplied. It is short, but two layout defects combine badly: a stray period moves the fee write outside its IF, and the write paragraph sits inside a PERFORM THRU range, so every account that is not exempt appears to get two fee lines, including accounts with no balance. No file operation is status-checked, so a missing input file loops instead of failing, and the step’s return code is whatever RATE01 returned last. A hardcoded exemption from 2016 and an unused Y2K date window are fossils worth asking about. Before anything else, confirm with the owner whether billing de-duplicates fee lines.',
+};
+</script>
+
+</body>
+</html>

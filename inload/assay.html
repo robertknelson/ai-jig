@@ -1,0 +1,2665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Assay — resume assay report</title>
+<style>
+/* ================================================================
+   ASSAY — a self-contained resume assay companion.
+   One file, no server, no build, no network. System fonts only.
+   Indicator law: status color never appears without a text label.
+   Gold scarcity law: gold appears only on the 9-10 fineness band
+   and the wordmark. Nothing else is gold.
+   ================================================================ */
+
+:root {
+  --bench: #f2f4f6;
+  --card: #ffffff;
+  --well: #eef1f4;
+  --ink: #1f242b;
+  --ink-soft: #5c6572;
+  --ink-faint: #8b93a0;
+  --line: #d9dee5;
+  --line-soft: #e7ebef;
+
+  --gold: #8a6d14;
+  --gold-tint: rgba(138, 109, 20, 0.12);
+
+  --good: #1a7f37;
+  --good-tint: rgba(26, 127, 55, 0.10);
+  --warn: #9a6700;
+  --warn-tint: rgba(154, 103, 0, 0.10);
+  --bad: #b42318;
+  --bad-tint: rgba(180, 35, 24, 0.08);
+  --info: #0969da;
+  --info-tint: rgba(9, 105, 218, 0.08);
+  --slate: #5f6b7a;
+  --slate-tint: rgba(95, 107, 122, 0.10);
+
+  --serif: Cambria, Georgia, 'Times New Roman', serif;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: Consolas, 'Cascadia Mono', 'Courier New', monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+:root[data-theme="dark"] {
+  --bench: #14171c;
+  --card: #1c2128;
+  --well: #171b21;
+  --ink: #e7eaee;
+  --ink-soft: #a0a8b4;
+  --ink-faint: #79818d;
+  --line: #343c46;
+  --line-soft: #2a313a;
+
+  --gold: #d9b545;
+  --gold-tint: rgba(217, 181, 69, 0.14);
+
+  --good: #46b95e;
+  --good-tint: rgba(70, 185, 94, 0.14);
+  --warn: #d29922;
+  --warn-tint: rgba(210, 153, 34, 0.14);
+  --bad: #f0655c;
+  --bad-tint: rgba(240, 101, 92, 0.12);
+  --info: #58a6ff;
+  --info-tint: rgba(88, 166, 255, 0.12);
+  --slate: #93a0af;
+  --slate-tint: rgba(147, 160, 175, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--bench);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ---------------- header ---------------- */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.wordmark-gem {
+  color: var(--gold);
+  font-size: 13px;
+  transform: translateY(-1px);
+}
+.wordmark-name {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+.wordmark-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px;
+}
+.mode-tab {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mode-tab.is-active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+}
+
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.theme-toggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+button:focus-visible, a:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
+
+/* ---------------- prepare mode ---------------- */
+
+.prepare {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 24px 80px;
+}
+
+.prepare-lede {
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+.prepare-sub {
+  color: var(--ink-soft);
+  margin: 0 0 36px;
+  max-width: 56ch;
+}
+.prepare-sub .sample-link {
+  color: var(--info);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.step-num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+}
+.step-title {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  margin: 5px 0 6px;
+}
+.step-body { color: var(--ink-soft); margin: 0 0 12px; max-width: 58ch; }
+
+.variant-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.variant-card {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.variant-card input { margin-right: 7px; accent-color: var(--info); }
+.variant-card.is-picked { border-color: var(--info); background: var(--info-tint); }
+.variant-name { font-weight: 600; font-size: 14px; }
+.variant-desc { display: block; color: var(--ink-soft); font-size: 13px; margin-top: 3px; }
+
+.attest {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--warn-tint);
+  font-size: 13.5px;
+}
+.attest.is-shown { display: flex; }
+.attest input { margin-top: 3px; accent-color: var(--warn); }
+
+textarea {
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+textarea::placeholder { color: var(--ink-faint); }
+
+.step-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 9px 18px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-faint); }
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bench);
+}
+.btn-primary:hover { opacity: 0.88; border-color: var(--ink); }
+.btn-quiet {
+  border: none;
+  background: none;
+  color: var(--info);
+  padding: 9px 4px;
+  font-weight: 500;
+}
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+.hint { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+.hint.is-ok { color: var(--good); }
+.hint.is-bad { color: var(--bad); }
+
+.paste-error {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bad-tint);
+  color: var(--bad);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* ---------------- report layout ---------------- */
+
+.report {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 880px);
+  gap: 40px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px 90px;
+}
+
+.rail {
+  position: sticky;
+  top: 78px;
+  align-self: start;
+  font-size: 13px;
+}
+.rail-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  margin: 0 0 10px 12px;
+  text-transform: uppercase;
+}
+.rail a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.rail a:hover { color: var(--ink); background: var(--well); }
+.rail a.is-current {
+  color: var(--ink);
+  border-left-color: var(--ink);
+  background: var(--well);
+}
+.rail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--slate);
+}
+.rail-dot.dot-good { background: var(--good); }
+.rail-dot.dot-warn { background: var(--warn); }
+.rail-dot.dot-bad  { background: var(--bad); }
+.rail-dot.dot-info { background: var(--info); }
+.rail-dot.dot-gold { background: var(--gold); }
+.rail-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.rail-tools { margin-top: 22px; padding: 0 12px; display: grid; gap: 8px; }
+.rail-tools .btn { width: 100%; font-size: 12.5px; padding: 7px 10px; }
+
+/* ---------------- report content ---------------- */
+
+.sheet { min-width: 0; }
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  margin-bottom: 22px;
+  scroll-margin-top: 84px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+.panel-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.panel-sub { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 18px; }
+
+.not-provided {
+  color: var(--ink-faint);
+  font-style: italic;
+  font-size: 13.5px;
+}
+
+/* hero */
+
+.hero { padding: 30px 34px 28px; }
+.hero-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.hero-id { flex: 1 1 300px; min-width: 0; }
+.specimen-name {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 2px 0 14px;
+  overflow-wrap: break-word;
+}
+
+.stamp {
+  flex: none;
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 12px 18px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px currentColor;
+  transform: rotate(-1.5deg);
+  max-width: 210px;
+  line-height: 1.45;
+}
+.stamp-good { color: var(--good); background: var(--good-tint); }
+.stamp-warn { color: var(--warn); background: var(--warn-tint); }
+.stamp-bad  { color: var(--bad);  background: var(--bad-tint); }
+.stamp-slate{ color: var(--slate);background: var(--slate-tint); }
+
+/* fineness meter */
+
+.meter-row { margin: 4px 0 18px; }
+.meter-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 7px;
+}
+.meter-value { color: var(--ink); font-size: 13px; }
+.meter-band-word { font-weight: 700; }
+.band-bad  .meter-band-word { color: var(--bad); }
+.band-warn .meter-band-word { color: var(--warn); }
+.band-good .meter-band-word { color: var(--good); }
+.band-gold .meter-band-word { color: var(--gold); }
+
+.meter { display: flex; gap: 3px; max-width: 380px; }
+.meter .cell {
+  flex: 1;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+}
+.band-bad  .cell.is-filled { background: var(--bad);  border-color: var(--bad); }
+.band-warn .cell.is-filled { background: var(--warn); border-color: var(--warn); }
+.band-good .cell.is-filled { background: var(--good); border-color: var(--good); }
+.band-gold .cell.is-filled { background: var(--gold); border-color: var(--gold); }
+
+.narration {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.65;
+  margin: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+}
+
+/* chips */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip-good { color: var(--good); background: var(--good-tint); border-color: var(--good); }
+.chip-warn { color: var(--warn); background: var(--warn-tint); border-color: var(--warn); }
+.chip-bad  { color: var(--bad);  background: var(--bad-tint);  border-color: var(--bad); }
+.chip-info { color: var(--info); background: var(--info-tint); border-color: var(--info); }
+.chip-slate{ color: var(--slate);background: var(--slate-tint);border-color: var(--slate); }
+
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  border: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  margin: 0 6px 6px 0;
+}
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* generic cards & rows */
+
+.card-grid { display: grid; gap: 14px; }
+
+.mini-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  padding: 16px 18px;
+}
+.mini-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mini-card-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+  margin-right: auto;
+}
+.mini-card p { margin: 0 0 8px; }
+.mini-card p:last-child { margin-bottom: 0; }
+
+.kicker {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: block;
+  margin: 10px 0 3px;
+}
+
+.quote-sig {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.quote-sig::before { content: "\201C"; }
+.quote-sig::after  { content: "\201D"; }
+
+.sig-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.sig-list li {
+  padding: 3px 0 3px 16px;
+  position: relative;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.sig-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.sig-list.list-plus li::before { background: var(--good); }
+.sig-list.list-flag li::before { background: var(--warn); }
+
+.q-block {
+  border-left: 3px solid var(--info);
+  background: var(--info-tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 9px 14px;
+  margin-top: 10px;
+  font-size: 13.5px;
+}
+.q-block .q-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--info);
+  display: block;
+  margin-bottom: 3px;
+}
+.q-block ol { margin: 0; padding-left: 18px; }
+.q-block ol li { margin: 3px 0; }
+.q-block p { margin: 0; }
+
+details.fold { margin-top: 10px; }
+details.fold summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--info);
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+details.fold summary::marker { color: var(--ink-faint); }
+
+/* smoke tests */
+
+.smoke-card { background: var(--card); border: 1px solid var(--line); }
+.smoke-q-list { margin: 8px 0 0; padding-left: 22px; }
+.smoke-q-list li { margin: 7px 0; }
+.smoke-signals { margin-top: 10px; }
+
+/* ai fluency ladder */
+
+.ladder { list-style: none; margin: 4px 0 20px; padding: 0; max-width: 560px; }
+.rung {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0 7px 28px;
+}
+.rung::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line-soft);
+}
+.rung:first-child::before { top: 50%; }
+.rung:last-child::before { bottom: 50%; }
+.rung-dot {
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+}
+.rung.is-evidenced .rung-dot { background: var(--good); border-color: var(--good); }
+.rung.is-claimed .rung-dot { background: var(--warn-tint); border-color: var(--warn); }
+.rung-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+.rung.is-evidenced .rung-label { color: var(--ink); font-weight: 700; }
+.rung.is-claimed .rung-label { color: var(--ink-soft); }
+.rung-verdict {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rung-verdict.v-evidenced { color: var(--good); }
+.rung-verdict.v-claimed { color: var(--warn); }
+.rung-verdict.v-absent { color: var(--ink-faint); }
+.rung-mark {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin-left: auto;
+}
+.posture-summary {
+  border-left: 3px solid var(--slate);
+  background: var(--slate-tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 11px 15px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+/* measures */
+
+.measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.measure-tile {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  padding: 16px 18px;
+}
+.measure-tile h4 {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 400;
+  margin: 0 0 10px;
+}
+.measure-tile.span-2 { grid-column: 1 / -1; }
+
+/* impact ratio bar */
+
+.ratio-bar { display: flex; gap: 2px; height: 20px; border-radius: 4px; overflow: hidden; margin: 8px 0 10px; }
+.ratio-seg { min-width: 4px; }
+.ratio-seg.seg-metric { background: var(--good); border-radius: 4px 0 0 4px; }
+.ratio-seg.seg-passive { background: var(--slate); border-radius: 0 4px 4px 0; opacity: 0.55; }
+.ratio-legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--ink-soft); flex-wrap: wrap; }
+.ratio-legend .swatch {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px;
+}
+.ratio-legend .swatch.s-metric { background: var(--good); }
+.ratio-legend .swatch.s-passive { background: var(--slate); opacity: 0.55; }
+
+/* trajectory */
+
+.traj-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.traj-row:first-of-type { border-top: 0; padding-top: 4px; }
+.traj-company { font-weight: 700; }
+.traj-tenure { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); display: block; margin-top: 2px; }
+
+/* smells */
+
+.smell-card { border-left: 4px solid var(--slate); }
+.smell-card.sev-high { border-left-color: var(--bad); }
+.smell-card.sev-medium { border-left-color: var(--warn); }
+.smell-card.sev-low { border-left-color: var(--slate); }
+.smell-loc { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--good);
+  font-weight: 600;
+}
+
+/* strengths */
+
+.flag-list { margin: 0 0 4px; padding: 0; list-style: none; }
+.flag-list li {
+  padding: 5px 0 5px 24px;
+  position: relative;
+}
+.flag-list li::before {
+  content: "\2713";
+  position: absolute;
+  left: 2px;
+  color: var(--good);
+  font-weight: 700;
+}
+
+/* report empty state */
+
+.report-empty {
+  max-width: 560px;
+  margin: 90px auto;
+  text-align: center;
+  padding: 0 24px;
+}
+.report-empty h2 { font-family: var(--serif); font-size: 24px; margin: 0 0 10px; }
+.report-empty p { color: var(--ink-soft); margin: 0 0 22px; }
+
+/* footer */
+
+.colophon {
+  border-top: 1px solid var(--line);
+  padding: 18px 28px 26px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* toast */
+
+.toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--ink);
+  color: var(--bench);
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 50;
+}
+.toast.is-shown { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* responsive */
+
+@media (max-width: 900px) {
+  .report { grid-template-columns: 1fr; gap: 0; }
+  .rail { display: none; }
+  .panel { padding: 20px 18px; }
+  .hero { padding: 22px 20px; }
+  .specimen-name { font-size: 27px; }
+  .masthead { padding: 12px 16px; gap: 12px; }
+  .wordmark-tag { display: none; }
+}
+
+/* print: the certificate on paper */
+
+@media print {
+  .masthead, .rail, .colophon, .toast, .btn { display: none !important; }
+  body { background: #fff; color: #111; }
+  .report { display: block; padding: 0; max-width: none; }
+  .panel { border-color: #bbb; break-inside: avoid; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="#" id="home-link">
+    <span class="wordmark-gem">&#9670;</span>
+    <span class="wordmark-name">ASSAY</span>
+    <span class="wordmark-tag">resume assay report</span>
+  </a>
+  <nav class="mode-tabs" aria-label="Mode">
+    <button class="mode-tab is-active" id="tab-prepare" type="button">Prepare</button>
+    <button class="mode-tab" id="tab-report" type="button">Report</button>
+  </nav>
+  <button class="theme-toggle" id="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">&#9789;</button>
+</header>
+
+<main id="view-prepare">
+  <div class="prepare">
+    <h1 class="prepare-lede">Run a resume through the assay.</h1>
+    <p class="prepare-sub">
+      Three steps: copy the assay prompt with the resume folded in, run it in your
+      AI assistant, paste the JSON verdict back here. Everything happens in this
+      file — nothing is uploaded or saved.
+      <button class="sample-link" id="load-sample" type="button">Or view a sample report first.</button>
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h2 class="step-title">Paste the resume text</h2>
+        <p class="step-body">Plain text works best — copy everything out of the
+        document, formatting doesn't matter.</p>
+        <textarea id="resume-input" placeholder="Paste the candidate's resume text here&hellip;" spellcheck="false"></textarea>
+        <div class="variant-pick" role="radiogroup" aria-label="Assay variant">
+          <label class="variant-card is-picked">
+            <input type="radio" name="variant" value="fire" checked>
+            <span class="variant-name">Fire assay</span>
+            <span class="variant-desc">The full analysis &mdash; verdict, fineness, every heuristic
+            at full strength. For permissive environments.</span>
+          </label>
+          <label class="variant-card">
+            <input type="radio" name="variant" value="touchstone">
+            <span class="variant-name">Touchstone</span>
+            <span class="variant-desc">The field test for governed environments &mdash; evaluates
+            the presentation only: redacted input, no verdict, no protected-characteristic
+            inference. You score suitability yourself.</span>
+          </label>
+        </div>
+        <label class="attest" id="attest-row">
+          <input type="checkbox" id="attest-check">
+          <span>Emails, phone numbers, and links are stripped automatically at copy time.
+          I have replaced remaining names, employers, and addresses in the text above myself.</span>
+        </label>
+        <div class="step-actions">
+          <button class="btn btn-primary" id="copy-prompt" type="button">Copy assay prompt</button>
+          <span class="hint" id="resume-hint">The full analyst prompt + this resume, ready for your clipboard.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h2 class="step-title">Run it in your AI assistant</h2>
+        <p class="step-body">Paste the copied prompt into Claude, ChatGPT, or
+        whatever you use. It will reply with a single JSON object — copy that
+        whole reply.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h2 class="step-title">Paste the JSON verdict</h2>
+        <p class="step-body">Code fences or stray text around the JSON are fine —
+        they'll be stripped.</p>
+        <textarea id="json-input" placeholder='{ "candidate_name": &hellip; }' spellcheck="false"></textarea>
+        <div class="step-actions">
+          <button class="btn btn-primary" id="read-report" type="button">Read the report</button>
+        </div>
+        <div class="paste-error" id="paste-error" hidden></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main id="view-report" hidden></main>
+
+<footer class="colophon">
+  Assay runs entirely inside this file. Nothing you paste is stored or sent
+  anywhere &mdash; closing the tab clears it.
+</footer>
+
+<div class="toast" id="toast" role="status"></div>
+
+<!-- ============ the canonical analyst prompts (verbatim; one block per
+     .docs/prompts/manifest.json variant — the drift test holds them to their
+     .docs/prompts/ files) ============ -->
+<script type="text/plain" id="prompt-template-fire">
+You are an elite principal software architect and a world-class technical interviewer. Your job is to conduct a multi-dimensional, deep-thinking assessment of candidate resumes. You look past keyword padding to evaluate technical integrity (the Technology Clustering Smell Test), identify structural behavioral patterns, and vigorously differentiate between passive tool exposure and actual system mastery.
+
+Analyze the resume at three levels:
+1. Individual bullet points and specific project blocks.
+2. Timeline context, tenure stability, and employment periods.
+3. Total career chronology and progressive trajectory.
+
+Return ONLY a valid JSON object matching the schema below. Do not include markdown code fences such as ```json. Do not include conversational text before or after the JSON payload.
+
+If the resume does not provide enough evidence for a conclusion, say so explicitly instead of inventing supporting detail.
+After the overall summary, include a plain-English narrative section that walks through each major heuristic in concise human terms. This section should help a hiring manager quickly understand the judgment without reading every structured field.
+
+### DEEP-THINKING HEURISTICS & RULES
+
+1. ACTIVE MASTERY VS. PASSIVE ENCOUNTER DETECTION:
+    - Identify keywords that are simply pasted into a block or listed passively (for example: "Worked in an environment using AWS, Kubernetes, React"). Classify these as EXPOSURE_ONLY.
+    - Look for active engineering indicators: configuring from scratch, refactoring, performance tuning, decomposing monoliths, designing schemas, fixing deadlocks, or mitigating production failures. Classify these as PROBABLE_MASTERY.
+
+2. TECHNOLOGY SMOKE TEST GENERATION:
+    - Isolate the top 6-12 major high-leverage frameworks, languages, or core architectural technologies where the candidate claims or exhibits PROBABLE_MASTERY.
+    - For only these major items, generate 2-3 highly precise, advanced smoke test questions.
+    - Each smoke test question must target a critical engineering reality, failure mode, tradeoff, or core limitation of that specific technology.
+    - The question should be difficult for someone with casual tutorial knowledge and easy for someone with true production mastery to answer in under 30 seconds.
+
+3. INDIVIDUAL OWNERSHIP VS. TEAM-LEVEL ATTRIBUTION:
+    - Distinguish between work the candidate personally appears to own or directly drive versus work merely described as team responsibility.
+    - Strong personal-attribution signals include verbs and claims such as designed, implemented, led, owned, migrated, debugged, tuned, operated, was accountable for, drove incident response, or was on point for delivery.
+    - Weak attribution signals include phrases such as part of a team responsible for, contributed to, worked with, supported, involved in, collaborated on, or operated in an environment using.
+    - When a bullet describes team outcomes but does not anchor the candidate to a specific decision, implementation, operational burden, or deliverable, classify it as TEAM_LEVEL_ONLY or AMBIENT_MENTION rather than direct ownership.
+    - Reward explicit accountability signals such as owning production services, defining architecture, being responsible for migrations, setting standards, carrying on-call burden, or being the escalation point.
+
+4. TECH CLUSTERING SMELL TEST:
+    - COHESION_CLASH: Disjointed tools listed under a single project or timeline without an obvious architectural bridge or migration justification.
+    - TEMPORAL_ANACHRONISM: Claiming years of experience on tools that have only existed for months or very recently entered mainstream use.
+    - TOOL_STUFFING: Listing trivial utilities (for example: VS Code, Git, Slack, Prettier) as primary competencies to pad keyword density.
+    - INFRA_DISCONNECT: Claiming large-scale distributed architecture without showing corresponding operational, observability, data, or deployment details.
+    - AI_BUZZ_STUFFING: AI, GenAI, LLM, or agent keywords planted in skills lists, titles, or summaries with no accomplishment bullet showing a named artifact, integration depth, or operational detail behind them.
+
+5. LEADERSHIP, MENTORSHIP, AND HUMAN-LEVERAGE DETECTION:
+    - Distinguish candidates who primarily execute their own tasks from candidates who measurably raise the capability of a team, stakeholder group, or user base.
+    - Strong signals include mentoring junior engineers, onboarding others, setting standards, leading code reviews, writing durable documentation or runbooks, teaching, presenting, guiding architecture decisions, coordinating incidents, unblocking teammates, and being a trusted escalation point.
+    - Front-line user support can count as a meaningful leadership or enablement signal when the candidate translates user pain into system improvements, guides adoption, reduces confusion, or becomes the bridge between users and engineering.
+    - Do not infer leadership from title alone. Require evidence in the resume that the candidate taught, guided, influenced, supported, or amplified others.
+    - Separate people management, technical leadership, mentorship, operational leadership, and user enablement. A candidate can be strong in one without showing the others.
+    - Also classify the candidate's apparent influence scope: ONE_TO_ONE, TEAM, CROSS_TEAM, ORGANIZATION, or EXTERNAL_USERS. Scope should reflect how broadly their mentoring, guidance, standards-setting, or enablement seems to travel.
+
+6. INNOVATION AND ORIGINATION DETECTION:
+    - Distinguish candidates who originate — greenfield systems, novel tooling, new patterns or processes introduced into an organization — from candidates who competently execute and extend what already exists. Both are valuable; only one is innovation.
+    - Strong origination signals: building systems or tools from scratch that others then used, introducing a technology, pattern, or process that the organization adopted, patents, published papers or conference talks, open-source projects the candidate created (not merely contributed to), and internal tools that outlived the candidate's team or tenure.
+    - Apply the ADOPTION TEST: novelty counts as innovation only when the resume shows uptake, persistence, or measurable outcome. "Built a new framework" with no adopters is a weak signal; "introduced X, now used by N teams" is a strong one.
+    - Anti-signal — resume-driven development: new technology introduced with no stated problem it solved, or a trail of one-off novelties with no follow-through. Treat this as a smell (it often co-occurs with COHESION_CLASH), not as innovation.
+    - Do not infer innovation from adjectives ("innovative solutions", "cutting-edge"). Require a nameable artifact, decision, or adoption event.
+
+7. AI FLUENCY AND POSTURE DETECTION (MAXIMUM SKEPTICISM):
+    - Nearly every resume now claims AI. Approach every AI claim as inflated until the text proves otherwise; the burden of proof is on the resume. The default classification for any AI claim that lacks a named artifact is CHAT_AI_CONSUMER.
+    - Classify the candidate's relationship to AI into modes. Modes are postures, not ranks: they are not cumulative, a candidate can hold several at once, and no mode is inherently superior for every role.
+        - CHAT_AI_CONSUMER: uses assistants conversationally for research, drafting, or debugging. Typical fingerprint: productivity claims with no named artifact.
+        - AI_ASSISTED_ENGINEERING: AI tooling inside the development loop (code assistants, coding agents). Genuine signal: named failure modes and a stated review or verification discipline for generated code. "Used Copilot" alone is consumer-grade.
+        - PROMPT_ENGINEERING: prompts treated as versioned, tested engineering artifacts — system prompts, structured-output schemas, eval-backed iteration. "Wrote prompts" without evaluation discipline is chat use wearing a title.
+        - AI_PRODUCT_ENGINEERING: shipped LLM-backed product features. Genuine signal: retrieval design tradeoffs, tool/function-call design, guardrails, fallback paths for when the model is wrong, context-window budgeting. Calling a completion API from a request handler is integration, not AI engineering.
+        - AI_INFRASTRUCTURE_AND_OPERATIONS: operates AI systems in production — evaluation and regression harnesses, cost-per-request and latency budgets, model routing and version migration, observability for nondeterministic behavior, serving or GPU economics.
+        - AI_RESEARCH_AND_TRAINING: fine-tuning, training, or published research. Demand a verifiable artifact: a model, a paper, a venue, a benchmark result.
+    - PRODUCTION FINGERPRINT ANALYSIS: for whatever depth is claimed, enumerate which production fingerprints are present in the text and which are conspicuously missing. A claimed production LLM feature that never mentions evaluation, hallucination or prompt-injection handling, cost, latency, or model versioning is the AI-era INFRA_DISCONNECT.
+    - INFLATION PATTERNS to hunt explicitly:
+        - Title inflation: "AI Engineer" or "GenAI Specialist" titles where the deepest visible artifact is an API integration.
+        - Wrapper inflation: "built an AI chatbot / copilot / assistant" with no retrieval, guardrail, or evaluation detail — a thin wrapper presented as a system.
+        - Metric inflation: unverifiable productivity claims ("40% faster with AI") presented as engineering outcomes. Treat as decoration, not evidence.
+        - Anachronism: tenure math that credits years of experience on models or frameworks that have existed for months (feeds TEMPORAL_ANACHRONISM).
+        - Buzz stuffing: AI keywords planted in skills lists with zero accomplishment bullets behind them (flag as AI_BUZZ_STUFFING in smell results).
+    - JUDGMENT SIGNALS — credit sparingly, and only from the text: knowing where NOT to use AI (deterministic paths, compliance, correctness-critical code), treating model output as untrusted input (validation, sandboxing, injection awareness), and measured statements about limitations. These separate practitioners from tourists better than any tool list.
+    - GUARDRAILS ON YOUR OWN SKEPTICISM: the absence of AI claims is calibration information, never a penalty — classify NONE_VISIBLE without prejudice. Do not attempt to infer whether the resume itself was written with AI; judge the claims, not the prose style.
+    - AI technologies that earn PROBABLE_MASTERY are eligible for smoke-test generation like any other technology. Prefer failure-mode questions (eval design, injection defense, hallucination handling, cost control, testing nondeterministic behavior) over API trivia.
+
+8. NON-SKEPTIC COUNTERBALANCE, STILL EVIDENCE-BOUND:
+    - After pressure-testing the resume, deliberately extract credible strength signals that are supported by the text.
+    - Reward repeated ownership patterns, measurable impact, end-to-end delivery, operational maturity, scope growth, hiring or mentoring signals, and evidence of durable domain depth.
+    - Do not penalize a candidate merely because the resume is terse or not buzzword-heavy if the accomplishments show real engineering substance.
+    - Do not become charitable without evidence. This is a balancing lens, not a relaxation of standards.
+    - The plain-English heuristic narratives must stay evidence-bound, specific, and concise. They should summarize what the resume suggests, what remains ambiguous, and why that matters.
+    - Each heuristic narrative should anchor itself to short source signals from the resume and explain why the observation matters for screening or interview calibration.
+
+9. OVERALL COHESION SCORING (integer 1-10):
+    - 1-2: Keyword salad. Technology claims do not cohere into any plausible career; heavy stuffing, anachronisms, or scale claims with no supporting detail.
+    - 3-4: Mostly padding with scattered credible islands. A real engineer may be underneath, but the resume obscures more than it shows.
+    - 5-6: Mixed. Credible core narrative with meaningful ambiguity — team-level attribution, unexplained tool clusters, or thin operational detail.
+    - 7-8: Coherent. Technologies, timeline, and claimed scope form a believable story; most major claims carry active-mastery or ownership evidence.
+    - 9-10: Exceptional coherence. A consistent, evidence-rich trajectory with clear personal ownership, plausible scale, and progressive scope growth. Reserve for resumes that survive every smell test.
+
+### OUTPUT JSON SCHEMA:
+{
+    "candidate_name": "String or Unknown",
+    "overall_cohesion_score": "Integer 1-10 per the OVERALL COHESION SCORING anchors",
+    "screening_verdict": "PROCEED_WITH_CALIBRATION | CAUTION_DRILL_DEEP | REJECT_KEYWORD_SALAD",
+    "executive_narration": "A descriptive plain-English summary of the candidate's career story, technical identity, operational strengths, trajectory flags, and likely depth.",
+    "heuristic_narratives": [
+        {
+            "heuristic": "ACTIVE_MASTERY_VS_PASSIVE_ENCOUNTER | TECHNOLOGY_SMOKE_TEST_GENERATION | INDIVIDUAL_OWNERSHIP_VS_TEAM_LEVEL_ATTRIBUTION | TECH_CLUSTERING_SMELL_TEST | LEADERSHIP_MENTORSHIP_AND_HUMAN_LEVERAGE | INNOVATION_AND_ORIGINATION | AI_FLUENCY_AND_POSTURE | NON_SKEPTIC_COUNTERBALANCE",
+            "plain_english_summary": "Concise narrative describing what this heuristic suggests about the candidate",
+            "why_it_matters": "Why this observation affects screening confidence, interview focus, or hiring risk",
+            "source_resume_signals": [
+                "Short phrase, bullet fragment, or resume pattern that triggered this interpretation"
+            ],
+            "confidence": "HIGH | MEDIUM | LOW"
+        }
+    ],
+    "claimed_technical_skills": [
+        "Programming language, framework, database, platform, or core tool explicitly claimed on the resume"
+    ],
+    "smoke_test_qualifiers": [
+        {
+            "technology": "Major technology where probable mastery is claimed",
+            "claimed_context": "Brief summary of where and how the resume suggests substantial use",
+            "smoke_test_questions": [
+                "Advanced question 1",
+                "Advanced question 2"
+            ],
+            "expected_mastery_signals": [
+                "Specific concept, tradeoff, failure mode, or mechanism a strong answer should reference"
+            ]
+        }
+    ],
+    "exposure_vs_mastery_analysis": [
+        {
+            "technology": "String",
+            "classification": "EXPOSURE_ONLY | PROBABLE_MASTERY",
+            "evidence_rationale": "Detailed explanation of why this was classified as exposure versus mastery",
+            "exposure_smell_flag": true,
+            "calibration_questions": [
+                "Pinpoint technical question designed to test under-the-hood understanding"
+            ]
+        }
+    ],
+    "role_attribution_analysis": [
+        {
+            "scope": "Project, role, or technology context",
+            "technology": "String or N/A",
+            "attribution_level": "DIRECT_OWNER | DIRECT_CONTRIBUTOR | TEAM_LEVEL_ONLY | AMBIENT_MENTION | UNCLEAR",
+            "resume_wording_signal": "Exact wording pattern that drove the attribution judgment",
+            "evidence_rationale": "Why the wording suggests personal ownership versus team-level association",
+            "ownership_indicators": [
+                "Signals that suggest direct accountability or hands-on delivery"
+            ],
+            "ambiguity_flags": [
+                "What remains unclear or overstated in the wording"
+            ],
+            "calibration_question": "A targeted question that clarifies whether the candidate personally owned this work or was one member of a broader team"
+        }
+    ],
+    "leadership_and_enablement_analysis": {
+        "leadership_signal_strength": "STRONG | MODERATE | LIMITED | NONE_VISIBLE | UNCLEAR",
+        "leadership_modes": [
+            "TECHNICAL_LEADERSHIP | PEOPLE_MENTORSHIP | TEAM_ENABLEMENT | USER_ENABLEMENT | CROSS_FUNCTIONAL_INFLUENCE | INCIDENT_OR_OPERATIONAL_LEADERSHIP"
+        ],
+        "influence_scope": "ONE_TO_ONE | TEAM | CROSS_TEAM | ORGANIZATION | EXTERNAL_USERS | UNCLEAR",
+        "evidence": [
+            {
+                "signal": "Specific leadership or enablement pattern",
+                "resume_evidence": "Resume wording that supports this conclusion",
+                "interpretation": "Why this suggests mentoring, teaching, influence, or human leverage rather than solo execution"
+            }
+        ],
+        "frontline_orientation": "DIRECT_USER_SUPPORT | INTERNAL_STAKEHOLDER_SUPPORT | TEAM_INTERNAL_ONLY | UNCLEAR",
+        "risk_notes": [
+            "Ambiguities, missing proof, or reasons the leadership claim may be overstated"
+        ],
+        "calibration_questions": [
+            "Targeted question to test whether the candidate actually mentored, taught, led, or enabled others"
+        ]
+    },
+    "innovation_and_origination_analysis": {
+        "innovation_signal_strength": "STRONG | MODERATE | LIMITED | NONE_VISIBLE | UNCLEAR",
+        "innovation_modes": [
+            "GREENFIELD_ORIGINATION | TOOLING_OR_PROCESS_INTRODUCTION | PUBLIC_ARTIFACTS_OR_RESEARCH | UNCONVENTIONAL_PROBLEM_SOLVING"
+        ],
+        "evidence": [
+            {
+                "signal": "Specific origination or adoption pattern",
+                "resume_evidence": "Resume wording that supports this conclusion",
+                "interpretation": "Why this suggests genuine origination-plus-adoption rather than novelty-chasing or adjective-only claims"
+            }
+        ],
+        "risk_notes": [
+            "Novelty without adopters, resume-driven technology churn, or innovation claimed only through adjectives"
+        ],
+        "calibration_questions": [
+            "Targeted question to test whether the candidate originated the work and whether anyone actually adopted it"
+        ]
+    },
+    "ai_fluency_analysis": {
+        "highest_evidenced_mode": "NONE_VISIBLE | CHAT_AI_CONSUMER | AI_ASSISTED_ENGINEERING | PROMPT_ENGINEERING | AI_PRODUCT_ENGINEERING | AI_INFRASTRUCTURE_AND_OPERATIONS | AI_RESEARCH_AND_TRAINING",
+        "posture_summary": "A skeptical plain-English reading of the candidate's overall relationship to AI: what altitude they actually work at, versus what the resume wants you to believe",
+        "mode_assessments": [
+            {
+                "mode": "CHAT_AI_CONSUMER | AI_ASSISTED_ENGINEERING | PROMPT_ENGINEERING | AI_PRODUCT_ENGINEERING | AI_INFRASTRUCTURE_AND_OPERATIONS | AI_RESEARCH_AND_TRAINING",
+                "verdict": "EVIDENCED | CLAIMED_ONLY | ABSENT",
+                "resume_evidence": "Exact wording or pattern behind this judgment, or what is conspicuously absent",
+                "skeptical_reading": "The least generous defensible interpretation of the claim",
+                "inflation_flags": [
+                    "Title, wrapper, metric, anachronism, or stuffing patterns detected for this mode"
+                ]
+            }
+        ],
+        "production_fingerprints_found": [
+            "Evaluation harnesses, guardrails, cost or latency budgets, model versioning, injection handling, observability — list only what is actually in the text"
+        ],
+        "production_fingerprints_missing": [
+            "Fingerprints someone operating at the claimed depth would be expected to show but does not"
+        ],
+        "judgment_signals": [
+            "Evidence of knowing where NOT to use AI, treating model output as untrusted input, or honest limitation statements"
+        ],
+        "risk_notes": [
+            "Inflation patterns, unverifiable metrics, or reasons the AI posture may be shallower than presented"
+        ],
+        "calibration_questions": [
+            "Targeted question that separates production AI depth from tutorial or consumer familiarity"
+        ]
+    },
+    "identified_ecosystems": [
+        "List of core ecosystems found"
+    ],
+    "impact_to_activity_ratio": {
+        "metric_driven_bullets_count": 0,
+        "passive_activity_bullets_count": 0,
+        "verdict": "HIGH_IMPACT_DRIVEN | PURELY_TASK_ORIENTED | BALANCED"
+    },
+    "scale_plausibility": {
+        "status": "PASS | SUSPECT_EXAGGERATION",
+        "notes": "Evaluation notes"
+    },
+    "autodidactic_signals": [
+        "Open-source, side-project, research, writing, teaching, or self-directed signals"
+    ],
+    "scope_escalation_analysis": [
+        {
+            "company": "String",
+            "tenure": "String",
+            "did_ownership_grow": true,
+            "evidence": "Detailed description of scope expansion"
+        }
+    ],
+    "smell_test_results": [
+        {
+            "type": "COHESION_CLASH | INFRA_DISCONNECT | TEMPORAL_ANACHRONISM | TOOL_STUFFING | AI_BUZZ_STUFFING",
+            "severity": "LOW | MEDIUM | HIGH",
+            "location": "Resume section or role context",
+            "description": "Breakdown of the smell flag",
+            "calibration_question": "Targeted question"
+        }
+    ],
+    "structural_green_flags": [
+        "Strong positive signal"
+    ],
+    "evidence_backed_strengths": [
+        {
+            "signal": "Credible positive signal",
+            "resume_evidence": "What in the resume supports this conclusion",
+            "why_it_matters": "Why this is a meaningful indicator of engineering strength"
+        }
+    ]
+}
+
+### RESUME TEXT TO ANALYZE:
+[PASTE RESUME TEXT HERE]
+</script>
+
+<script type="text/plain" id="prompt-template-touchstone">
+You are an elite principal software architect and a rigorous analyst of technical writing. Your job is to conduct a multi-dimensional, deep-thinking evaluation of a REDACTED resume as a document: its internal consistency, its logical coherence, and the skills it asserts versus the skills it evidences. You look past keyword padding to evaluate technical integrity (the Technology Clustering Smell Test), identify structural patterns in how the work is presented, and vigorously differentiate between passive tool exposure and evidenced system mastery — always as properties of the text, never as judgments of a person.
+
+### GOVERNANCE CONSTRAINTS (ABSOLUTE — THESE OVERRIDE EVERY OTHER INSTRUCTION)
+
+1. NO PERSONAL DATA. The document was redacted before it reached you and may contain [REDACTED] placeholders. Never echo, reconstruct, or guess names, email addresses, phone numbers, postal addresses, or employer names. If a fragment of personal data survived redaction, write [REDACTED] wherever your output would otherwise repeat it. Refer to employers as "Company A", "Company B", and so on, in order of first appearance in the document.
+2. NO DECISIONS ABOUT THE INDIVIDUAL. Do not evaluate suitability, do not recommend proceeding or rejecting, do not rank, and do not produce any hire or no-hire signal in any field, including free-text narratives. Every conclusion you draw is a property of the document: what it asserts, where it is consistent, where it contradicts itself, and how well its claims are evidenced. The human reader makes every judgment about the person.
+3. NO PROTECTED-CHARACTERISTIC INFERENCE. Never infer, estimate, or hint at age, gender, ethnicity, nationality, religion, disability, or any other protected characteristic — not from graduation years, tenure spans, name fragments, institutions, locations, or prose style. If a conclusion would require such an inference, do not draw it.
+
+Analyze the presentation at three levels:
+1. Individual bullet points and specific project blocks.
+2. Timeline context, tenure stability, and employment periods as the document presents them.
+3. The total chronology the document presents and whether it forms a coherent, progressive trajectory.
+
+Return ONLY a valid JSON object matching the schema below. Do not include markdown code fences such as ```json. Do not include conversational text before or after the JSON payload.
+
+If the document does not provide enough evidence for a conclusion, say so explicitly instead of inventing supporting detail.
+After the overall summary, include a plain-English narrative section that walks through each major heuristic in concise human terms. This section should help the reader quickly understand what the document asserts and how well it holds together, without reading every structured field.
+
+### DEEP-THINKING HEURISTICS & RULES
+
+1. ACTIVE MASTERY VS. PASSIVE ENCOUNTER DETECTION:
+    - Identify keywords that are simply pasted into a block or listed passively (for example: "Worked in an environment using AWS, Kubernetes, React"). Classify these as EXPOSURE_ONLY.
+    - Look for active engineering indicators: configuring from scratch, refactoring, performance tuning, decomposing monoliths, designing schemas, fixing deadlocks, or mitigating production failures. Classify these as PROBABLE_MASTERY.
+    - Both labels describe the strength of the textual evidence behind an asserted skill, not the person's actual ability.
+
+2. TECHNOLOGY SMOKE TEST GENERATION:
+    - Isolate the top 6-12 major high-leverage frameworks, languages, or core architectural technologies where the document asserts or exhibits PROBABLE_MASTERY.
+    - For only these major items, generate 2-3 highly precise, advanced smoke test questions.
+    - Each smoke test question must target a critical engineering reality, failure mode, tradeoff, or core limitation of that specific technology.
+    - The question should be difficult for someone with casual tutorial knowledge and easy for someone with true production mastery to answer in under 30 seconds.
+
+3. INDIVIDUAL OWNERSHIP VS. TEAM-LEVEL ATTRIBUTION:
+    - Distinguish between work the document presents as personally owned or directly driven versus work merely described as team responsibility.
+    - Strong personal-attribution signals include verbs and claims such as designed, implemented, led, owned, migrated, debugged, tuned, operated, was accountable for, drove incident response, or was on point for delivery.
+    - Weak attribution signals include phrases such as part of a team responsible for, contributed to, worked with, supported, involved in, collaborated on, or operated in an environment using.
+    - When a bullet describes team outcomes but does not anchor the writer to a specific decision, implementation, operational burden, or deliverable, classify it as TEAM_LEVEL_ONLY or AMBIENT_MENTION rather than direct ownership.
+    - Note explicit accountability claims such as owning production services, defining architecture, being responsible for migrations, setting standards, carrying on-call burden, or being the escalation point — these are the wording patterns that separate asserted ownership from asserted proximity.
+
+4. TECH CLUSTERING & INTERNAL CONSISTENCY SMELL TEST:
+    - COHESION_CLASH: Disjointed tools listed under a single project or timeline without an obvious architectural bridge or migration justification.
+    - TEMPORAL_ANACHRONISM: Claiming years of experience on tools that have only existed for months or very recently entered mainstream use.
+    - TOOL_STUFFING: Listing trivial utilities (for example: VS Code, Git, Slack, Prettier) as primary competencies to pad keyword density.
+    - INFRA_DISCONNECT: Claiming large-scale distributed architecture without showing corresponding operational, observability, data, or deployment details.
+    - AI_BUZZ_STUFFING: AI, GenAI, LLM, or agent keywords planted in skills lists, titles, or summaries with no accomplishment bullet showing a named artifact, integration depth, or operational detail behind them.
+    - INTERNAL_CONTRADICTION: Claims that contradict each other within the document — timeline impossibilities or unexplained overlaps, asserted depth that conflicts with the asserted role or tenure, summary-section claims with no supporting bullet anywhere in the body, or the same work described inconsistently in two places. Hunt these deliberately; internal contradiction is the single strongest document-level signal this analysis can surface.
+
+5. LEADERSHIP, MENTORSHIP, AND HUMAN-LEVERAGE CLAIMS:
+    - Distinguish presentations that primarily describe executing individual tasks from presentations that assert measurably raising the capability of a team, stakeholder group, or user base.
+    - Strong signals include mentoring junior engineers, onboarding others, setting standards, leading code reviews, writing durable documentation or runbooks, teaching, presenting, guiding architecture decisions, coordinating incidents, unblocking teammates, and being a trusted escalation point.
+    - Front-line user support can count as a meaningful leadership or enablement signal when the text shows translating user pain into system improvements, guiding adoption, reducing confusion, or bridging between users and engineering.
+    - Do not credit leadership from title alone. Require evidence in the text that the writer taught, guided, influenced, supported, or amplified others.
+    - Separate people management, technical leadership, mentorship, operational leadership, and user enablement. A document can evidence one without showing the others.
+    - Also classify the influence scope the document asserts: ONE_TO_ONE, TEAM, CROSS_TEAM, ORGANIZATION, or EXTERNAL_USERS. Scope should reflect how broadly the claimed mentoring, guidance, standards-setting, or enablement seems to travel.
+
+6. INNOVATION AND ORIGINATION CLAIMS:
+    - Distinguish presentations that assert origination — greenfield systems, novel tooling, new patterns or processes introduced into an organization — from presentations that describe competently executing and extending what already exists. Both are valuable; only one is innovation.
+    - Strong origination signals: building systems or tools from scratch that others then used, introducing a technology, pattern, or process that the organization adopted, patents, published papers or conference talks, open-source projects the document claims were created (not merely contributed to), and internal tools described as outliving the writer's team or tenure.
+    - Apply the ADOPTION TEST: novelty counts as innovation only when the text shows uptake, persistence, or measurable outcome. "Built a new framework" with no adopters is a weak signal; "introduced X, now used by N teams" is a strong one.
+    - Anti-signal — resume-driven development: new technology introduced with no stated problem it solved, or a trail of one-off novelties with no follow-through. Treat this as a smell (it often co-occurs with COHESION_CLASH), not as innovation.
+    - Do not credit innovation from adjectives ("innovative solutions", "cutting-edge"). Require a nameable artifact, decision, or adoption event.
+
+7. AI FLUENCY AND POSTURE CLAIMS (MAXIMUM SKEPTICISM):
+    - Nearly every resume now claims AI. Approach every AI claim as inflated until the text proves otherwise; the burden of proof is on the document. The default classification for any AI claim that lacks a named artifact is CHAT_AI_CONSUMER.
+    - Classify the relationship to AI the document asserts into modes. Modes are postures, not ranks: they are not cumulative, a document can evidence several at once, and no mode is inherently superior for every role.
+        - CHAT_AI_CONSUMER: uses assistants conversationally for research, drafting, or debugging. Typical fingerprint: productivity claims with no named artifact.
+        - AI_ASSISTED_ENGINEERING: AI tooling inside the development loop (code assistants, coding agents). Genuine signal: named failure modes and a stated review or verification discipline for generated code. "Used Copilot" alone is consumer-grade.
+        - PROMPT_ENGINEERING: prompts treated as versioned, tested engineering artifacts — system prompts, structured-output schemas, eval-backed iteration. "Wrote prompts" without evaluation discipline is chat use wearing a title.
+        - AI_PRODUCT_ENGINEERING: shipped LLM-backed product features. Genuine signal: retrieval design tradeoffs, tool/function-call design, guardrails, fallback paths for when the model is wrong, context-window budgeting. Calling a completion API from a request handler is integration, not AI engineering.
+        - AI_INFRASTRUCTURE_AND_OPERATIONS: operates AI systems in production — evaluation and regression harnesses, cost-per-request and latency budgets, model routing and version migration, observability for nondeterministic behavior, serving or GPU economics.
+        - AI_RESEARCH_AND_TRAINING: fine-tuning, training, or published research. Demand a verifiable artifact: a model, a paper, a venue, a benchmark result.
+    - PRODUCTION FINGERPRINT ANALYSIS: for whatever depth is claimed, enumerate which production fingerprints are present in the text and which are conspicuously missing. A claimed production LLM feature that never mentions evaluation, hallucination or prompt-injection handling, cost, latency, or model versioning is the AI-era INFRA_DISCONNECT.
+    - INFLATION PATTERNS to hunt explicitly:
+        - Title inflation: "AI Engineer" or "GenAI Specialist" titles where the deepest visible artifact is an API integration.
+        - Wrapper inflation: "built an AI chatbot / copilot / assistant" with no retrieval, guardrail, or evaluation detail — a thin wrapper presented as a system.
+        - Metric inflation: unverifiable productivity claims ("40% faster with AI") presented as engineering outcomes. Treat as decoration, not evidence.
+        - Anachronism: tenure math that credits years of experience on models or frameworks that have existed for months (feeds TEMPORAL_ANACHRONISM).
+        - Buzz stuffing: AI keywords planted in skills lists with zero accomplishment bullets behind them (flag as AI_BUZZ_STUFFING in smell results).
+    - JUDGMENT SIGNALS — credit sparingly, and only from the text: knowing where NOT to use AI (deterministic paths, compliance, correctness-critical code), treating model output as untrusted input (validation, sandboxing, injection awareness), and measured statements about limitations. These separate practitioner-grade text from tourist-grade text better than any tool list.
+    - GUARDRAILS ON YOUR OWN SKEPTICISM: the absence of AI claims is calibration information, never a penalty — classify NONE_VISIBLE without prejudice. Do not attempt to infer whether the resume itself was written with AI; judge the claims, not the prose style.
+    - AI technologies that earn PROBABLE_MASTERY are eligible for smoke-test generation like any other technology. Prefer failure-mode questions (eval design, injection defense, hallucination handling, cost control, testing nondeterministic behavior) over API trivia.
+
+8. NON-SKEPTIC COUNTERBALANCE, STILL EVIDENCE-BOUND:
+    - After pressure-testing the document, deliberately extract credible strength signals that are supported by the text.
+    - Note repeated ownership patterns, measurable impact, end-to-end delivery, operational maturity, scope growth, hiring or mentoring signals, and evidence of durable domain depth.
+    - Do not mark a presentation down merely because it is terse or not buzzword-heavy if the accomplishments show real engineering substance.
+    - Do not become charitable without evidence. This is a balancing lens, not a relaxation of standards.
+    - The plain-English heuristic narratives must stay evidence-bound, specific, and concise. They should summarize what the document asserts, what remains ambiguous, and why that matters.
+    - Each heuristic narrative should anchor itself to short source signals from the document and explain why the observation matters for reading the presentation or preparing questions.
+
+9. PRESENTATION COHESION SCORING (integer 1-10) — a property of the document, never a suitability judgment:
+    - 1-2: Keyword salad. Technology claims do not cohere into any plausible narrative; heavy stuffing, anachronisms, or scale claims with no supporting detail.
+    - 3-4: Mostly padding with scattered credible islands. Real substance may be underneath, but the presentation obscures more than it shows.
+    - 5-6: Mixed. Credible core narrative with meaningful ambiguity — team-level attribution, unexplained tool clusters, or thin operational detail.
+    - 7-8: Coherent. Technologies, timeline, and claimed scope form a believable story; most major claims carry active-mastery or ownership evidence.
+    - 9-10: Exceptional coherence. A consistent, evidence-rich trajectory with clear personal ownership, plausible scale, and progressive scope growth. Reserve for presentations that survive every smell test.
+
+### OUTPUT JSON SCHEMA:
+{
+    "candidate_name": "Always the literal string: Redacted",
+    "overall_cohesion_score": "Integer 1-10 per the PRESENTATION COHESION SCORING anchors",
+    "executive_narration": "A descriptive plain-English summary of the presentation: the technical narrative the document asserts, where it is internally consistent, where it contradicts itself, and which asserted skills carry real evidence. No suitability judgment.",
+    "heuristic_narratives": [
+        {
+            "heuristic": "ACTIVE_MASTERY_VS_PASSIVE_ENCOUNTER | TECHNOLOGY_SMOKE_TEST_GENERATION | INDIVIDUAL_OWNERSHIP_VS_TEAM_LEVEL_ATTRIBUTION | TECH_CLUSTERING_SMELL_TEST | LEADERSHIP_MENTORSHIP_AND_HUMAN_LEVERAGE | INNOVATION_AND_ORIGINATION | AI_FLUENCY_AND_POSTURE | NON_SKEPTIC_COUNTERBALANCE",
+            "plain_english_summary": "Concise narrative describing what this heuristic reveals about the presentation",
+            "why_it_matters": "Why this observation affects how much weight the reader should give the relevant claims, and where to probe",
+            "source_resume_signals": [
+                "Short phrase, bullet fragment, or pattern from the document that triggered this interpretation — with any personal data replaced by [REDACTED]"
+            ],
+            "confidence": "HIGH | MEDIUM | LOW"
+        }
+    ],
+    "claimed_technical_skills": [
+        "Programming language, framework, database, platform, or core tool explicitly claimed in the document"
+    ],
+    "smoke_test_qualifiers": [
+        {
+            "technology": "Major technology where probable mastery is asserted",
+            "claimed_context": "Brief summary of where and how the document suggests substantial use",
+            "smoke_test_questions": [
+                "Advanced question 1",
+                "Advanced question 2"
+            ],
+            "expected_mastery_signals": [
+                "Specific concept, tradeoff, failure mode, or mechanism a strong answer should reference"
+            ]
+        }
+    ],
+    "exposure_vs_mastery_analysis": [
+        {
+            "technology": "String",
+            "classification": "EXPOSURE_ONLY | PROBABLE_MASTERY",
+            "evidence_rationale": "Detailed explanation of why the text supports exposure versus mastery for this claim",
+            "exposure_smell_flag": true,
+            "calibration_questions": [
+                "Pinpoint technical question designed to test under-the-hood understanding"
+            ]
+        }
+    ],
+    "role_attribution_analysis": [
+        {
+            "scope": "Project, role, or technology context",
+            "technology": "String or N/A",
+            "attribution_level": "DIRECT_OWNER | DIRECT_CONTRIBUTOR | TEAM_LEVEL_ONLY | AMBIENT_MENTION | UNCLEAR",
+            "resume_wording_signal": "Exact wording pattern that drove the attribution judgment, with any personal data replaced by [REDACTED]",
+            "evidence_rationale": "Why the wording asserts personal ownership versus team-level association",
+            "ownership_indicators": [
+                "Signals that assert direct accountability or hands-on delivery"
+            ],
+            "ambiguity_flags": [
+                "What remains unclear or overstated in the wording"
+            ],
+            "calibration_question": "A targeted question that clarifies whether the work described was personally owned or one member's share of a broader team effort"
+        }
+    ],
+    "leadership_and_enablement_analysis": {
+        "leadership_signal_strength": "STRONG | MODERATE | LIMITED | NONE_VISIBLE | UNCLEAR",
+        "leadership_modes": [
+            "TECHNICAL_LEADERSHIP | PEOPLE_MENTORSHIP | TEAM_ENABLEMENT | USER_ENABLEMENT | CROSS_FUNCTIONAL_INFLUENCE | INCIDENT_OR_OPERATIONAL_LEADERSHIP"
+        ],
+        "influence_scope": "ONE_TO_ONE | TEAM | CROSS_TEAM | ORGANIZATION | EXTERNAL_USERS | UNCLEAR",
+        "evidence": [
+            {
+                "signal": "Specific leadership or enablement pattern the document asserts",
+                "resume_evidence": "Document wording that supports this conclusion, with any personal data replaced by [REDACTED]",
+                "interpretation": "Why this wording asserts mentoring, teaching, influence, or human leverage rather than solo execution"
+            }
+        ],
+        "frontline_orientation": "DIRECT_USER_SUPPORT | INTERNAL_STAKEHOLDER_SUPPORT | TEAM_INTERNAL_ONLY | UNCLEAR",
+        "risk_notes": [
+            "Ambiguities, missing proof, or reasons the leadership claim may be overstated"
+        ],
+        "calibration_questions": [
+            "Targeted question to test whether the mentoring, teaching, leading, or enabling described actually happened as presented"
+        ]
+    },
+    "innovation_and_origination_analysis": {
+        "innovation_signal_strength": "STRONG | MODERATE | LIMITED | NONE_VISIBLE | UNCLEAR",
+        "innovation_modes": [
+            "GREENFIELD_ORIGINATION | TOOLING_OR_PROCESS_INTRODUCTION | PUBLIC_ARTIFACTS_OR_RESEARCH | UNCONVENTIONAL_PROBLEM_SOLVING"
+        ],
+        "evidence": [
+            {
+                "signal": "Specific origination or adoption pattern the document asserts",
+                "resume_evidence": "Document wording that supports this conclusion, with any personal data replaced by [REDACTED]",
+                "interpretation": "Why this wording asserts genuine origination-plus-adoption rather than novelty-chasing or adjective-only claims"
+            }
+        ],
+        "risk_notes": [
+            "Novelty without adopters, resume-driven technology churn, or innovation claimed only through adjectives"
+        ],
+        "calibration_questions": [
+            "Targeted question to test whether the work was originated as described and whether anyone actually adopted it"
+        ]
+    },
+    "ai_fluency_analysis": {
+        "highest_evidenced_mode": "NONE_VISIBLE | CHAT_AI_CONSUMER | AI_ASSISTED_ENGINEERING | PROMPT_ENGINEERING | AI_PRODUCT_ENGINEERING | AI_INFRASTRUCTURE_AND_OPERATIONS | AI_RESEARCH_AND_TRAINING",
+        "posture_summary": "A skeptical plain-English reading of the AI relationship the document asserts: what altitude the text actually evidences, versus what it wants the reader to believe",
+        "mode_assessments": [
+            {
+                "mode": "CHAT_AI_CONSUMER | AI_ASSISTED_ENGINEERING | PROMPT_ENGINEERING | AI_PRODUCT_ENGINEERING | AI_INFRASTRUCTURE_AND_OPERATIONS | AI_RESEARCH_AND_TRAINING",
+                "verdict": "EVIDENCED | CLAIMED_ONLY | ABSENT",
+                "resume_evidence": "Exact wording or pattern behind this judgment, or what is conspicuously absent, with any personal data replaced by [REDACTED]",
+                "skeptical_reading": "The least generous defensible interpretation of the claim",
+                "inflation_flags": [
+                    "Title, wrapper, metric, anachronism, or stuffing patterns detected for this mode"
+                ]
+            }
+        ],
+        "production_fingerprints_found": [
+            "Evaluation harnesses, guardrails, cost or latency budgets, model versioning, injection handling, observability — list only what is actually in the text"
+        ],
+        "production_fingerprints_missing": [
+            "Fingerprints a text operating at the claimed depth would be expected to show but does not"
+        ],
+        "judgment_signals": [
+            "Evidence of knowing where NOT to use AI, treating model output as untrusted input, or honest limitation statements"
+        ],
+        "risk_notes": [
+            "Inflation patterns, unverifiable metrics, or reasons the asserted AI posture may be shallower than presented"
+        ],
+        "calibration_questions": [
+            "Targeted question that separates production AI depth from tutorial or consumer familiarity"
+        ]
+    },
+    "identified_ecosystems": [
+        "List of core ecosystems found"
+    ],
+    "impact_to_activity_ratio": {
+        "metric_driven_bullets_count": 0,
+        "passive_activity_bullets_count": 0,
+        "verdict": "HIGH_IMPACT_DRIVEN | PURELY_TASK_ORIENTED | BALANCED"
+    },
+    "scale_plausibility": {
+        "status": "PASS | SUSPECT_EXAGGERATION",
+        "notes": "Evaluation notes"
+    },
+    "autodidactic_signals": [
+        "Open-source, side-project, research, writing, teaching, or self-directed signals asserted in the document"
+    ],
+    "scope_escalation_analysis": [
+        {
+            "company": "Anonymized label in order of first appearance: Company A, Company B, ...",
+            "tenure": "String as presented in the document",
+            "did_ownership_grow": true,
+            "evidence": "Detailed description of the scope expansion the document asserts"
+        }
+    ],
+    "smell_test_results": [
+        {
+            "type": "COHESION_CLASH | INFRA_DISCONNECT | TEMPORAL_ANACHRONISM | TOOL_STUFFING | AI_BUZZ_STUFFING | INTERNAL_CONTRADICTION",
+            "severity": "LOW | MEDIUM | HIGH",
+            "location": "Document section or role context, using anonymized company labels",
+            "description": "Breakdown of the smell flag",
+            "calibration_question": "Targeted question"
+        }
+    ],
+    "structural_green_flags": [
+        "Strong positive signal"
+    ],
+    "evidence_backed_strengths": [
+        {
+            "signal": "Credible positive signal",
+            "resume_evidence": "What in the document supports this conclusion, with any personal data replaced by [REDACTED]",
+            "why_it_matters": "Why this is a meaningful indicator of engineering substance in the presentation"
+        }
+    ]
+}
+
+### REDACTED RESUME TEXT TO ANALYZE:
+[PASTE RESUME TEXT HERE]
+</script>
+
+<script>
+'use strict';
+
+/* ---------------- theme ---------------- */
+
+const root = document.documentElement;
+const themeToggle = document.getElementById('theme-toggle');
+
+function appliedTheme() {
+  return root.dataset.theme ||
+    (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function paintToggle() {
+  themeToggle.textContent = appliedTheme() === 'dark' ? '☀' : '☾';
+}
+try {
+  const saved = localStorage.getItem('assay-theme');
+  if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+} catch (e) { /* storage blocked: theme just follows the system */ }
+paintToggle();
+
+themeToggle.addEventListener('click', () => {
+  const next = appliedTheme() === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('assay-theme', next); } catch (e) {}
+  paintToggle();
+});
+
+/* ---------------- tiny utils ---------------- */
+
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function arr(v) { return Array.isArray(v) ? v : []; }
+function obj(v) { return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+function has(v) { return v !== undefined && v !== null && String(v).trim() !== ''; }
+
+function humanize(v) {
+  if (!has(v)) return '';
+  return String(v).replace(/_/g, ' ').toLowerCase()
+    .replace(/^./, c => c.toUpperCase());
+}
+
+const toast = document.getElementById('toast');
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('is-shown');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-shown'), 2200);
+}
+
+function copyText(text, doneMsg) {
+  const done = () => showToast(doneMsg);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch (e) { showToast('Copy failed — select and copy manually'); }
+  document.body.removeChild(ta);
+}
+
+/* ---------------- indicator maps (label always accompanies color) ---------------- */
+
+const VERDICT_TONE = {
+  PROCEED_WITH_CALIBRATION: 'good',
+  CAUTION_DRILL_DEEP: 'warn',
+  REJECT_KEYWORD_SALAD: 'bad'
+};
+const CONFIDENCE_TONE = { HIGH: 'good', MEDIUM: 'warn', LOW: 'slate' };
+const CLASSIFICATION_TONE = { PROBABLE_MASTERY: 'good', EXPOSURE_ONLY: 'warn' };
+const ATTRIBUTION_TONE = {
+  DIRECT_OWNER: 'good', DIRECT_CONTRIBUTOR: 'info',
+  TEAM_LEVEL_ONLY: 'warn', AMBIENT_MENTION: 'slate', UNCLEAR: 'slate'
+};
+const STRENGTH_TONE = {
+  STRONG: 'good', MODERATE: 'info', LIMITED: 'warn',
+  NONE_VISIBLE: 'slate', UNCLEAR: 'slate'
+};
+const SEVERITY_TONE = { HIGH: 'bad', MEDIUM: 'warn', LOW: 'slate' };
+const RATIO_TONE = { HIGH_IMPACT_DRIVEN: 'good', BALANCED: 'info', PURELY_TASK_ORIENTED: 'warn' };
+const SCALE_TONE = { PASS: 'good', SUSPECT_EXAGGERATION: 'warn' };
+
+function chip(value, toneMap, fallbackTone) {
+  if (!has(value)) return '';
+  const tone = toneMap[value] || fallbackTone || 'slate';
+  return `<span class="chip chip-${tone}">${esc(humanize(value))}</span>`;
+}
+
+function bandOf(score) {
+  if (score >= 9) return { cls: 'band-gold', word: 'Exceptional' };
+  if (score >= 7) return { cls: 'band-good', word: 'Coherent' };
+  if (score >= 5) return { cls: 'band-warn', word: 'Mixed' };
+  if (score >= 3) return { cls: 'band-warn', word: 'Padding-heavy' };
+  return { cls: 'band-bad', word: 'Keyword salad' };
+}
+
+/* ---------------- mode switching ---------------- */
+
+const viewPrepare = document.getElementById('view-prepare');
+const viewReport = document.getElementById('view-report');
+const tabPrepare = document.getElementById('tab-prepare');
+const tabReport = document.getElementById('tab-report');
+
+let report = null; // the parsed JSON, only ever in memory
+
+function setMode(mode) {
+  const inReport = mode === 'report';
+  viewPrepare.hidden = inReport;
+  viewReport.hidden = !inReport;
+  tabPrepare.classList.toggle('is-active', !inReport);
+  tabReport.classList.toggle('is-active', inReport);
+  if (inReport && !report) renderEmptyReport();
+  window.scrollTo(0, 0);
+}
+tabPrepare.addEventListener('click', () => setMode('prepare'));
+tabReport.addEventListener('click', () => setMode('report'));
+document.getElementById('home-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  setMode('prepare');
+});
+
+/* ---------------- prepare: copy prompt ---------------- */
+
+const VARIANT_HINTS = {
+  fire: 'The full analyst prompt + this resume, ready for your clipboard.',
+  touchstone: 'The governed prompt + the redacted resume, ready for your clipboard.',
+};
+const GOVERNED_VARIANTS = ['touchstone'];
+
+const resumeInput = document.getElementById('resume-input');
+const resumeHint = document.getElementById('resume-hint');
+const attestRow = document.getElementById('attest-row');
+const attestCheck = document.getElementById('attest-check');
+
+function pickedVariant() {
+  return document.querySelector('input[name="variant"]:checked').value;
+}
+
+for (const radio of document.querySelectorAll('input[name="variant"]')) {
+  radio.addEventListener('change', () => {
+    for (const card of document.querySelectorAll('.variant-card')) {
+      card.classList.toggle('is-picked', card.contains(radio) && radio.checked);
+    }
+    attestRow.classList.toggle('is-shown', GOVERNED_VARIANTS.includes(radio.value));
+    resumeHint.textContent = VARIANT_HINTS[radio.value];
+    resumeHint.className = 'hint';
+  });
+}
+
+// A governed run must not carry personal data out — and prompt text cannot
+// redact what has already left, so the strip happens here, before the copy.
+// Names, employers, and addresses are the attestation checkbox's job.
+function redactMechanically(text) {
+  return text
+    .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, '[REDACTED]')
+    .replace(/(https?:\/\/|www\.)\S+/gi, '[REDACTED]')
+    .replace(/(\+?\d{1,3}[\s.-])?(\(\d{3}\)\s?|\d{3}[\s.-])\d{3}[\s.-]\d{4}\b/g, '[REDACTED]');
+}
+
+document.getElementById('copy-prompt').addEventListener('click', () => {
+  let resume = resumeInput.value.trim();
+  if (!resume) {
+    resumeHint.textContent = 'Paste the resume text first — the prompt needs it.';
+    resumeHint.className = 'hint is-bad';
+    resumeInput.focus();
+    return;
+  }
+  const variant = pickedVariant();
+  if (GOVERNED_VARIANTS.includes(variant)) {
+    if (!attestCheck.checked) {
+      resumeHint.textContent = 'Confirm the redaction first — the touchstone must not carry names, employers, or addresses out.';
+      resumeHint.className = 'hint is-bad';
+      attestCheck.focus();
+      return;
+    }
+    resume = redactMechanically(resume);
+  }
+  const template = document.getElementById(`prompt-template-${variant}`).textContent.trim();
+  const full = template.replace('[PASTE RESUME TEXT HERE]', resume);
+  copyText(full, 'Assay prompt copied — paste it into your AI assistant');
+  resumeHint.textContent = 'Copied. Run it, then paste the JSON reply in step 3.';
+  resumeHint.className = 'hint is-ok';
+});
+
+/* ---------------- prepare: parse JSON ---------------- */
+
+const jsonInput = document.getElementById('json-input');
+const pasteError = document.getElementById('paste-error');
+
+function extractJson(raw) {
+  let t = String(raw).trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  if (!t.startsWith('{')) {
+    const s = t.indexOf('{');
+    const e = t.lastIndexOf('}');
+    if (s >= 0 && e > s) t = t.slice(s, e + 1);
+  }
+  return JSON.parse(t);
+}
+
+document.getElementById('read-report').addEventListener('click', () => {
+  const raw = jsonInput.value;
+  if (!raw.trim()) {
+    pasteError.hidden = false;
+    pasteError.textContent = 'Nothing to read yet — paste the JSON reply from your AI assistant above.';
+    jsonInput.focus();
+    return;
+  }
+  try {
+    const data = extractJson(raw);
+    pasteError.hidden = true;
+    report = data;
+    renderReport(data);
+    setMode('report');
+  } catch (err) {
+    pasteError.hidden = false;
+    pasteError.textContent = 'That did not parse as JSON.\n' + err.message +
+      '\nCheck that you copied the assistant’s complete reply.';
+  }
+});
+
+document.getElementById('load-sample').addEventListener('click', () => {
+  report = SAMPLE_REPORT;
+  renderReport(SAMPLE_REPORT, true);
+  setMode('report');
+});
+
+/* ---------------- report: empty state ---------------- */
+
+function renderEmptyReport() {
+  viewReport.innerHTML = `
+    <div class="report-empty">
+      <h2>No report loaded yet</h2>
+      <p>Paste an assay JSON verdict in <strong>Prepare</strong> and it renders
+      here as a navigable certificate.</p>
+      <button class="btn btn-primary" id="empty-go-prepare" type="button">Go to Prepare</button>
+    </div>`;
+  document.getElementById('empty-go-prepare')
+    .addEventListener('click', () => setMode('prepare'));
+}
+
+/* ---------------- report: section builders ---------------- */
+
+function notProvided(what) {
+  return `<p class="not-provided">${esc(what)} — not provided by this run.</p>`;
+}
+
+function qBlock(label, questions) {
+  const qs = arr(questions).filter(has);
+  if (!qs.length) return '';
+  const body = qs.length === 1
+    ? `<p>${esc(qs[0])}</p>`
+    : `<ol>${qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`;
+  return `<div class="q-block"><span class="q-label">${esc(label)}</span>${body}</div>`;
+}
+
+function sigList(items, cls) {
+  const list = arr(items).filter(has);
+  if (!list.length) return '';
+  return `<ul class="sig-list ${cls || ''}">${list.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`;
+}
+
+function buildHero(d) {
+  const score = Number(d.overall_cohesion_score);
+  const hasScore = Number.isFinite(score) && score >= 1 && score <= 10;
+  const band = hasScore ? bandOf(score) : null;
+  const verdict = d.screening_verdict;
+  const stampTone = VERDICT_TONE[verdict] || 'slate';
+
+  const cells = hasScore
+    ? Array.from({ length: 10 }, (_, i) =>
+        `<span class="cell${i < score ? ' is-filled' : ''}"></span>`).join('')
+    : '';
+
+  return `
+  <section class="panel hero" id="sec-verdict">
+    <div class="hero-head">
+      <div class="hero-id">
+        <p class="eyebrow">Assay report &middot; specimen</p>
+        <h1 class="specimen-name">${esc(has(d.candidate_name) ? d.candidate_name : 'Unknown candidate')}</h1>
+        ${hasScore ? `
+        <div class="meter-row ${band.cls}">
+          <div class="meter-label">
+            <span>Fineness</span>
+            <span class="meter-value">${score} / 10</span>
+            <span class="meter-band-word">${esc(band.word)}</span>
+          </div>
+          <div class="meter" role="img" aria-label="Cohesion score ${score} out of 10 — ${esc(band.word)}">${cells}</div>
+        </div>` : notProvided('Cohesion score')}
+      </div>
+      ${has(verdict) ? `<div class="stamp stamp-${stampTone}">${esc(humanize(verdict))}</div>` : ''}
+    </div>
+    ${has(d.executive_narration)
+      ? `<p class="narration">${esc(d.executive_narration)}</p>`
+      : notProvided('Executive narration')}
+  </section>`;
+}
+
+function buildNarratives(d) {
+  const items = arr(d.heuristic_narratives);
+  const body = items.length ? `<div class="card-grid">` + items.map(n => `
+    <article class="mini-card">
+      <div class="mini-card-head">
+        <span class="mini-card-title">${esc(humanize(n.heuristic) || 'Heuristic')}</span>
+        ${chip(n.confidence, CONFIDENCE_TONE)}
+      </div>
+      ${has(n.plain_english_summary) ? `<p>${esc(n.plain_english_summary)}</p>` : ''}
+      ${has(n.why_it_matters) ? `<span class="kicker">Why it matters</span><p>${esc(n.why_it_matters)}</p>` : ''}
+      ${arr(n.source_resume_signals).length ? `<span class="kicker">Source signals</span>
+        <p>${arr(n.source_resume_signals).filter(has).map(s => `<span class="quote-sig">${esc(s)}</span>`).join(' &nbsp;&middot;&nbsp; ')}</p>` : ''}
+    </article>`).join('') + `</div>` : notProvided('Heuristic narratives');
+
+  return section('sec-readings', 'The readings', 'Plain-English walkthrough, one card per heuristic.', body);
+}
+
+function buildMastery(d) {
+  const items = arr(d.exposure_vs_mastery_analysis);
+  const body = items.length ? `<div class="card-grid">` + items.map(m => `
+    <article class="mini-card">
+      <div class="mini-card-head">
+        <span class="mini-card-title">${esc(m.technology || 'Technology')}</span>
+        ${m.exposure_smell_flag === true ? '<span class="chip chip-bad">Smell flag</span>' : ''}
+        ${chip(m.classification, CLASSIFICATION_TONE)}
+      </div>
+      ${has(m.evidence_rationale) ? `<p>${esc(m.evidence_rationale)}</p>` : ''}
+      ${arr(m.calibration_questions).filter(has).length ? `
+      <details class="fold">
+        <summary>calibration questions (${arr(m.calibration_questions).filter(has).length})</summary>
+        ${qBlock('Ask this', m.calibration_questions)}
+      </details>` : ''}
+    </article>`).join('') + `</div>` : notProvided('Exposure vs mastery analysis');
+
+  return section('sec-mastery', 'Mastery vs exposure',
+    'Which claimed technologies show real engineering fingerprints, and which are just nearby.', body);
+}
+
+function buildSmoke(d) {
+  const items = arr(d.smoke_test_qualifiers);
+  const body = items.length ? `<div class="card-grid">` + items.map(s => {
+    const qs = arr(s.smoke_test_questions).filter(has);
+    return `
+    <article class="mini-card smoke-card">
+      <div class="mini-card-head">
+        <span class="mini-card-title">${esc(s.technology || 'Technology')}</span>
+        ${qs.length ? `<button class="btn btn-quiet copy-smoke" type="button" data-tech="${esc(s.technology || '')}">copy questions</button>` : ''}
+      </div>
+      ${has(s.claimed_context) ? `<p>${esc(s.claimed_context)}</p>` : ''}
+      ${qs.length ? `<ol class="smoke-q-list">${qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+      ${arr(s.expected_mastery_signals).filter(has).length ? `
+      <div class="smoke-signals">
+        <span class="kicker">A strong answer touches</span>
+        ${sigList(s.expected_mastery_signals, 'list-plus')}
+      </div>` : ''}
+    </article>`;
+  }).join('') + `</div>` : notProvided('Smoke-test qualifiers');
+
+  return section('sec-smoke', 'Smoke-test questions',
+    'Thirty-second questions that are hard from tutorials and easy from production.', body);
+}
+
+function buildOwnership(d) {
+  const items = arr(d.role_attribution_analysis);
+  const body = items.length ? `<div class="card-grid">` + items.map(r => `
+    <article class="mini-card">
+      <div class="mini-card-head">
+        <span class="mini-card-title">${esc(r.scope || 'Scope')}</span>
+        ${has(r.technology) && r.technology !== 'N/A' ? `<span class="tag" style="margin:0">${esc(r.technology)}</span>` : ''}
+        ${chip(r.attribution_level, ATTRIBUTION_TONE)}
+      </div>
+      ${has(r.resume_wording_signal) ? `<p><span class="quote-sig">${esc(r.resume_wording_signal)}</span></p>` : ''}
+      ${has(r.evidence_rationale) ? `<p>${esc(r.evidence_rationale)}</p>` : ''}
+      ${arr(r.ownership_indicators).filter(has).length ? `<span class="kicker">Ownership indicators</span>${sigList(r.ownership_indicators, 'list-plus')}` : ''}
+      ${arr(r.ambiguity_flags).filter(has).length ? `<span class="kicker">Ambiguity flags</span>${sigList(r.ambiguity_flags, 'list-flag')}` : ''}
+      ${qBlock('Calibrate with', has(r.calibration_question) ? [r.calibration_question] : [])}
+    </article>`).join('') + `</div>` : notProvided('Role attribution analysis');
+
+  return section('sec-ownership', 'Ownership attribution',
+    'Did they own it, or stand near it while a team did.', body);
+}
+
+function buildEvidenceBlock(title, id, sub, a, strengthKey, modeKey, extraChips) {
+  const strength = a[strengthKey];
+  const modes = arr(a[modeKey]).filter(has);
+  const evidence = arr(a.evidence);
+  const empty = !has(strength) && !modes.length && !evidence.length &&
+    !arr(a.risk_notes).filter(has).length && !arr(a.calibration_questions).filter(has).length;
+
+  const body = empty ? notProvided(title) : `
+    <div class="chip-row" style="margin-bottom:14px">
+      ${chip(strength, STRENGTH_TONE)}
+      ${(extraChips || []).join('')}
+      ${modes.map(m => `<span class="tag" style="margin:0">${esc(humanize(m))}</span>`).join('')}
+    </div>
+    ${evidence.length ? `<div class="card-grid">` + evidence.map(e => `
+      <article class="mini-card">
+        ${has(e.signal) ? `<div class="mini-card-head"><span class="mini-card-title">${esc(e.signal)}</span></div>` : ''}
+        ${has(e.resume_evidence) ? `<p><span class="quote-sig">${esc(e.resume_evidence)}</span></p>` : ''}
+        ${has(e.interpretation) ? `<p>${esc(e.interpretation)}</p>` : ''}
+      </article>`).join('') + `</div>` : ''}
+    ${arr(a.risk_notes).filter(has).length ? `<span class="kicker">Risk notes</span>${sigList(a.risk_notes, 'list-flag')}` : ''}
+    ${qBlock('Calibrate with', a.calibration_questions)}`;
+
+  return section(id, title, sub, body);
+}
+
+const AI_MODES = [
+  'AI_RESEARCH_AND_TRAINING',
+  'AI_INFRASTRUCTURE_AND_OPERATIONS',
+  'AI_PRODUCT_ENGINEERING',
+  'PROMPT_ENGINEERING',
+  'AI_ASSISTED_ENGINEERING',
+  'CHAT_AI_CONSUMER'
+];
+const AI_MODE_LABELS = {
+  AI_RESEARCH_AND_TRAINING: 'AI research & training',
+  AI_INFRASTRUCTURE_AND_OPERATIONS: 'AI infrastructure & operations',
+  AI_PRODUCT_ENGINEERING: 'AI product engineering',
+  PROMPT_ENGINEERING: 'Prompt engineering',
+  AI_ASSISTED_ENGINEERING: 'AI-assisted engineering',
+  CHAT_AI_CONSUMER: 'Chat AI consumer'
+};
+const AI_VERDICT_TONE = { EVIDENCED: 'good', CLAIMED_ONLY: 'warn', ABSENT: 'slate' };
+
+function buildAiFluency(d) {
+  const a = obj(d.ai_fluency_analysis);
+  const assessments = arr(a.mode_assessments);
+  const empty = !has(a.highest_evidenced_mode) && !assessments.length &&
+    !has(a.posture_summary) && !arr(a.calibration_questions).filter(has).length;
+
+  if (empty) {
+    return section('sec-ai', 'AI fluency & posture',
+      'At what altitude do they actually work with AI — claims are inflated until proven.',
+      notProvided('AI fluency analysis'));
+  }
+
+  const byMode = {};
+  assessments.forEach(m => { if (m && m.mode) byMode[m.mode] = m; });
+
+  const noneVisible = a.highest_evidenced_mode === 'NONE_VISIBLE' ||
+    (!has(a.highest_evidenced_mode) && !assessments.some(m => m.verdict === 'EVIDENCED'));
+
+  const ladder = `<ul class="ladder">` + AI_MODES.map(mode => {
+    const m = byMode[mode];
+    const verdict = m && has(m.verdict) ? m.verdict : 'ABSENT';
+    const cls = verdict === 'EVIDENCED' ? ' is-evidenced'
+      : verdict === 'CLAIMED_ONLY' ? ' is-claimed' : '';
+    const vWord = verdict === 'EVIDENCED' ? 'evidenced'
+      : verdict === 'CLAIMED_ONLY' ? 'claimed only' : 'absent';
+    const vCls = verdict === 'EVIDENCED' ? 'v-evidenced'
+      : verdict === 'CLAIMED_ONLY' ? 'v-claimed' : 'v-absent';
+    const mark = mode === a.highest_evidenced_mode
+      ? '<span class="rung-mark">&#9666; highest evidenced</span>' : '';
+    return `<li class="rung${cls}">
+      <span class="rung-dot"></span>
+      <span class="rung-label">${esc(AI_MODE_LABELS[mode])}</span>
+      <span class="rung-verdict ${vCls}">${vWord}</span>
+      ${mark}
+    </li>`;
+  }).join('') + `</ul>`;
+
+  const cards = assessments.filter(m => m && (has(m.resume_evidence) ||
+    has(m.skeptical_reading) || arr(m.inflation_flags).filter(has).length));
+
+  const body = `
+    ${has(a.posture_summary) ? `<p class="posture-summary">${esc(a.posture_summary)}</p>` : ''}
+    ${ladder}
+    ${noneVisible ? `<p class="not-provided">No AI posture visible in this resume. That is calibration information, not a red flag &mdash; it tells you what to probe, not what to conclude.</p>` : ''}
+    ${cards.length ? `<div class="card-grid">` + cards.map(m => `
+      <article class="mini-card">
+        <div class="mini-card-head">
+          <span class="mini-card-title">${esc(AI_MODE_LABELS[m.mode] || humanize(m.mode) || 'Mode')}</span>
+          ${chip(m.verdict, AI_VERDICT_TONE)}
+        </div>
+        ${has(m.resume_evidence) ? `<p><span class="quote-sig">${esc(m.resume_evidence)}</span></p>` : ''}
+        ${has(m.skeptical_reading) ? `<span class="kicker">Skeptical reading</span><p>${esc(m.skeptical_reading)}</p>` : ''}
+        ${arr(m.inflation_flags).filter(has).length ? `<span class="kicker">Inflation flags</span>${sigList(m.inflation_flags, 'list-flag')}` : ''}
+      </article>`).join('') + `</div>` : ''}
+    ${(arr(a.production_fingerprints_found).filter(has).length || arr(a.production_fingerprints_missing).filter(has).length) ? `
+    <div class="measure-grid" style="margin-top:14px">
+      <div class="measure-tile">
+        <h4>Production fingerprints found</h4>
+        ${arr(a.production_fingerprints_found).filter(has).length
+          ? sigList(a.production_fingerprints_found, 'list-plus')
+          : '<p class="not-provided">None in the text.</p>'}
+      </div>
+      <div class="measure-tile">
+        <h4>Conspicuously missing</h4>
+        ${arr(a.production_fingerprints_missing).filter(has).length
+          ? sigList(a.production_fingerprints_missing, 'list-flag')
+          : '<p class="not-provided">Nothing flagged.</p>'}
+      </div>
+    </div>` : ''}
+    ${arr(a.judgment_signals).filter(has).length ? `<span class="kicker">Judgment signals</span>${sigList(a.judgment_signals, 'list-plus')}` : ''}
+    ${arr(a.risk_notes).filter(has).length ? `<span class="kicker">Risk notes</span>${sigList(a.risk_notes, 'list-flag')}` : ''}
+    ${qBlock('Calibrate with', a.calibration_questions)}`;
+
+  return section('sec-ai', 'AI fluency & posture',
+    'At what altitude do they actually work with AI — claims are inflated until proven.', body);
+}
+
+function buildMeasures(d) {
+  const ratio = obj(d.impact_to_activity_ratio);
+  const metric = Number(ratio.metric_driven_bullets_count);
+  const passive = Number(ratio.passive_activity_bullets_count);
+  const hasCounts = Number.isFinite(metric) && Number.isFinite(passive) && (metric + passive) > 0;
+  const total = hasCounts ? metric + passive : 0;
+
+  const scale = obj(d.scale_plausibility);
+  const ecosystems = arr(d.identified_ecosystems).filter(has);
+  const skills = arr(d.claimed_technical_skills).filter(has);
+  const auto = arr(d.autodidactic_signals).filter(has);
+
+  const body = `
+  <div class="measure-grid">
+    <div class="measure-tile">
+      <h4>Impact vs activity</h4>
+      ${hasCounts ? `
+        <div class="ratio-bar" role="img" aria-label="${metric} metric-driven bullets vs ${passive} passive-activity bullets">
+          <span class="ratio-seg seg-metric" style="flex-grow:${metric}"></span>
+          <span class="ratio-seg seg-passive" style="flex-grow:${passive}"></span>
+        </div>
+        <div class="ratio-legend">
+          <span><span class="swatch s-metric"></span>Metric-driven &middot; ${metric}</span>
+          <span><span class="swatch s-passive"></span>Passive activity &middot; ${passive}</span>
+        </div>
+        <div style="margin-top:10px">${chip(ratio.verdict, RATIO_TONE)}</div>`
+      : (has(ratio.verdict) ? chip(ratio.verdict, RATIO_TONE) : notProvided('Bullet counts'))}
+    </div>
+    <div class="measure-tile">
+      <h4>Scale plausibility</h4>
+      ${has(scale.status) ? `<div style="margin-bottom:8px">${chip(scale.status, SCALE_TONE)}</div>` : ''}
+      ${has(scale.notes) ? `<p style="margin:0">${esc(scale.notes)}</p>` : (has(scale.status) ? '' : notProvided('Scale plausibility'))}
+    </div>
+    <div class="measure-tile">
+      <h4>Self-directed signals</h4>
+      ${auto.length ? sigList(auto, 'list-plus') : notProvided('Autodidactic signals')}
+    </div>
+    <div class="measure-tile span-2">
+      <h4>Ecosystems</h4>
+      ${ecosystems.length ? ecosystems.map(t => `<span class="tag">${esc(t)}</span>`).join('') : notProvided('Ecosystems')}
+      <h4 style="margin-top:14px">Claimed skills (as written, unverified)</h4>
+      ${skills.length ? skills.map(t => `<span class="tag">${esc(t)}</span>`).join('') : notProvided('Claimed skills')}
+    </div>
+  </div>`;
+
+  return section('sec-measures', 'Bench measures',
+    'The quantities: impact density, scale claims, self-direction, and the raw skill list.', body);
+}
+
+function buildTrajectory(d) {
+  const items = arr(d.scope_escalation_analysis);
+  const body = items.length ? items.map(t => `
+    <div class="traj-row">
+      <div>
+        <span class="traj-company">${esc(t.company || 'Company')}</span>
+        ${has(t.tenure) ? `<span class="traj-tenure">${esc(t.tenure)}</span>` : ''}
+        <div style="margin-top:7px">${
+          t.did_ownership_grow === true
+            ? '<span class="chip chip-good">Scope grew</span>'
+            : t.did_ownership_grow === false
+              ? '<span class="chip chip-warn">Scope flat</span>'
+              : '<span class="chip chip-slate">Unclear</span>'
+        }</div>
+      </div>
+      <p style="margin:0">${esc(t.evidence || '')}</p>
+    </div>`).join('') : notProvided('Scope escalation analysis');
+
+  return section('sec-trajectory', 'Trajectory',
+    'Per company: did ownership grow while they were there.', body);
+}
+
+function buildSmells(d) {
+  const items = arr(d.smell_test_results);
+  const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+  const sorted = items.slice().sort((a, b) =>
+    (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
+
+  const body = sorted.length ? `<div class="card-grid">` + sorted.map(s => `
+    <article class="mini-card smell-card sev-${esc(String(s.severity || '').toLowerCase())}">
+      <div class="mini-card-head">
+        <span class="mini-card-title">${esc(humanize(s.type) || 'Smell')}</span>
+        ${has(s.location) ? `<span class="smell-loc">${esc(s.location)}</span>` : ''}
+        ${chip(s.severity, SEVERITY_TONE)}
+      </div>
+      ${has(s.description) ? `<p>${esc(s.description)}</p>` : ''}
+      ${qBlock('Calibrate with', has(s.calibration_question) ? [s.calibration_question] : [])}
+    </article>`).join('') + `</div>`
+    : `<p class="all-clear">&#10003; No smell flags raised by this run.</p>`;
+
+  return section('sec-smells', 'Smell tests',
+    'Clustering clashes, anachronisms, stuffing, and scale claims without operational spine.', body);
+}
+
+function buildStrengths(d) {
+  const flags = arr(d.structural_green_flags).filter(has);
+  const strengths = arr(d.evidence_backed_strengths);
+  const empty = !flags.length && !strengths.length;
+
+  const body = empty ? notProvided('Strength signals') : `
+    ${flags.length ? `<ul class="flag-list">${flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${strengths.length ? `<div class="card-grid" style="margin-top:${flags.length ? '14px' : '0'}">` + strengths.map(s => `
+      <article class="mini-card">
+        ${has(s.signal) ? `<div class="mini-card-head"><span class="mini-card-title">${esc(s.signal)}</span></div>` : ''}
+        ${has(s.resume_evidence) ? `<p><span class="quote-sig">${esc(s.resume_evidence)}</span></p>` : ''}
+        ${has(s.why_it_matters) ? `<span class="kicker">Why it matters</span><p>${esc(s.why_it_matters)}</p>` : ''}
+      </article>`).join('') + `</div>` : ''}`;
+
+  return section('sec-strengths', 'What holds up',
+    'The counterbalance: strengths the text actually supports.', body);
+}
+
+const SECTION_FIELDS = {
+  'sec-readings': 'heuristic_narratives',
+  'sec-mastery': 'exposure_vs_mastery_analysis',
+  'sec-smoke': 'smoke_test_qualifiers',
+  'sec-ownership': 'role_attribution_analysis',
+  'sec-leadership': 'leadership_and_enablement_analysis',
+  'sec-innovation': 'innovation_and_origination_analysis',
+  'sec-ai': 'ai_fluency_analysis',
+  'sec-measures': 'impact_to_activity_ratio &middot; scale_plausibility &middot; ecosystems',
+  'sec-trajectory': 'scope_escalation_analysis',
+  'sec-smells': 'smell_test_results',
+  'sec-strengths': 'structural_green_flags &middot; evidence_backed_strengths'
+};
+
+function section(id, title, sub, body) {
+  return `
+  <section class="panel" id="${id}">
+    <p class="eyebrow">${SECTION_FIELDS[id] || ''}</p>
+    <h2 class="panel-title">${esc(title)}</h2>
+    <p class="panel-sub">${esc(sub)}</p>
+    ${body}
+  </section>`;
+}
+
+/* ---------------- report: rail ---------------- */
+
+function railDots(d) {
+  const smells = arr(d.smell_test_results);
+  const worst = smells.some(s => s.severity === 'HIGH') ? 'bad'
+    : smells.some(s => s.severity === 'MEDIUM') ? 'warn'
+    : smells.length ? 'slate' : 'good';
+
+  const mastery = arr(d.exposure_vs_mastery_analysis);
+  const exposureCount = mastery.filter(m => m.classification === 'EXPOSURE_ONLY').length;
+  const masteryDot = !mastery.length ? 'slate'
+    : exposureCount > mastery.length / 2 ? 'warn' : 'good';
+
+  const score = Number(d.overall_cohesion_score);
+  const verdictDot = Number.isFinite(score) && score >= 9 ? 'gold'
+    : ({ good: 'good', warn: 'warn', bad: 'bad' }[VERDICT_TONE[d.screening_verdict]] || 'slate');
+
+  const lead = obj(d.leadership_and_enablement_analysis);
+  const innov = obj(d.innovation_and_origination_analysis);
+  const strengthDot = v => ({ STRONG: 'good', MODERATE: 'info', LIMITED: 'warn' }[v] || 'slate');
+
+  const ownership = arr(d.role_attribution_analysis);
+  const weakOwn = ownership.filter(r =>
+    r.attribution_level === 'TEAM_LEVEL_ONLY' || r.attribution_level === 'AMBIENT_MENTION').length;
+  const ownDot = !ownership.length ? 'slate' : weakOwn > ownership.length / 2 ? 'warn' : 'good';
+
+  return [
+    { id: 'sec-verdict', label: 'Verdict', dot: verdictDot },
+    { id: 'sec-readings', label: 'The readings', dot: 'info', count: arr(d.heuristic_narratives).length },
+    { id: 'sec-mastery', label: 'Mastery vs exposure', dot: masteryDot, count: mastery.length },
+    { id: 'sec-smoke', label: 'Smoke tests', dot: 'info', count: arr(d.smoke_test_qualifiers).length },
+    { id: 'sec-ownership', label: 'Ownership', dot: ownDot, count: ownership.length },
+    { id: 'sec-leadership', label: 'Leadership', dot: strengthDot(lead.leadership_signal_strength) },
+    { id: 'sec-innovation', label: 'Innovation', dot: strengthDot(innov.innovation_signal_strength) },
+    { id: 'sec-ai', label: 'AI fluency', dot: aiFluencyDot(d), count: arr(obj(d.ai_fluency_analysis).mode_assessments).filter(m => m && m.verdict !== 'ABSENT').length },
+    { id: 'sec-measures', label: 'Bench measures', dot: 'slate' },
+    { id: 'sec-trajectory', label: 'Trajectory', dot: 'slate', count: arr(d.scope_escalation_analysis).length },
+    { id: 'sec-smells', label: 'Smell tests', dot: worst, count: smells.length },
+    { id: 'sec-strengths', label: 'What holds up', dot: 'good', count: arr(d.structural_green_flags).length + arr(d.evidence_backed_strengths).length }
+  ];
+}
+
+function aiFluencyDot(d) {
+  const a = obj(d.ai_fluency_analysis);
+  const assessments = arr(a.mode_assessments);
+  if (!assessments.length && !has(a.highest_evidenced_mode)) return 'slate';
+  if (assessments.some(m => m && m.verdict === 'CLAIMED_ONLY')) return 'warn';
+  const highest = a.highest_evidenced_mode;
+  if (highest && highest !== 'NONE_VISIBLE' && highest !== 'CHAT_AI_CONSUMER') return 'good';
+  return 'slate';
+}
+
+/* ---------------- report: crib sheet ---------------- */
+
+function buildCribSheet(d) {
+  const lines = [];
+  const name = has(d.candidate_name) ? d.candidate_name : 'Unknown candidate';
+  lines.push('ASSAY CRIB SHEET — ' + name);
+  lines.push('='.repeat(Math.min(60, 20 + name.length)));
+
+  const push = (heading, items) => {
+    const list = items.filter(has);
+    if (!list.length) return;
+    lines.push('', heading.toUpperCase(), '-'.repeat(heading.length));
+    list.forEach(q => lines.push('  [ ] ' + q));
+  };
+
+  arr(d.smoke_test_qualifiers).forEach(s => {
+    push('Smoke test — ' + (s.technology || 'technology'), arr(s.smoke_test_questions));
+  });
+  arr(d.exposure_vs_mastery_analysis).forEach(m => {
+    push('Calibration — ' + (m.technology || 'technology'), arr(m.calibration_questions));
+  });
+  push('Ownership calibration',
+    arr(d.role_attribution_analysis).map(r => r.calibration_question));
+  push('Leadership calibration',
+    arr(obj(d.leadership_and_enablement_analysis).calibration_questions));
+  push('Innovation calibration',
+    arr(obj(d.innovation_and_origination_analysis).calibration_questions));
+  push('AI fluency calibration',
+    arr(obj(d.ai_fluency_analysis).calibration_questions));
+  push('Smell-test calibration',
+    arr(d.smell_test_results).map(s => s.calibration_question));
+
+  return lines.join('\n') + '\n';
+}
+
+/* ---------------- report: assemble ---------------- */
+
+function renderReport(d, isSample) {
+  const lead = obj(d.leadership_and_enablement_analysis);
+  const innov = obj(d.innovation_and_origination_analysis);
+
+  const leadChips = [];
+  if (has(lead.influence_scope)) {
+    leadChips.push(`<span class="chip chip-info">Scope: ${esc(humanize(lead.influence_scope))}</span>`);
+  }
+  if (has(lead.frontline_orientation)) {
+    leadChips.push(`<span class="chip chip-slate">${esc(humanize(lead.frontline_orientation))}</span>`);
+  }
+
+  const dots = railDots(d);
+  viewReport.innerHTML = `
+  <div class="report">
+    <nav class="rail" aria-label="Report sections">
+      <p class="rail-label">Ledger${isSample ? ' &middot; sample' : ''}</p>
+      ${dots.map(x => `
+        <a href="#${x.id}" data-target="${x.id}">
+          <span class="rail-dot dot-${x.dot}"></span>
+          <span>${esc(x.label)}</span>
+          ${x.count ? `<span class="rail-count">${x.count}</span>` : ''}
+        </a>`).join('')}
+      <div class="rail-tools">
+        <button class="btn" id="copy-crib" type="button">Copy crib sheet</button>
+        <button class="btn" id="new-assay" type="button">New assay</button>
+      </div>
+    </nav>
+    <div class="sheet">
+      ${buildHero(d)}
+      ${buildNarratives(d)}
+      ${buildMastery(d)}
+      ${buildSmoke(d)}
+      ${buildOwnership(d)}
+      ${buildEvidenceBlock('Leadership & enablement', 'sec-leadership',
+        'Do they raise other people’s capability, or only execute their own tasks.',
+        lead, 'leadership_signal_strength', 'leadership_modes', leadChips)}
+      ${buildEvidenceBlock('Innovation & origination', 'sec-innovation',
+        'Did they originate anything — and did anyone adopt it.',
+        innov, 'innovation_signal_strength', 'innovation_modes', [])}
+      ${buildAiFluency(d)}
+      ${buildMeasures(d)}
+      ${buildTrajectory(d)}
+      ${buildSmells(d)}
+      ${buildStrengths(d)}
+    </div>
+  </div>`;
+
+  document.getElementById('copy-crib').addEventListener('click', () => {
+    copyText(buildCribSheet(d), 'Crib sheet copied — every question, phone-screen ready');
+  });
+  document.getElementById('new-assay').addEventListener('click', () => {
+    setMode('prepare');
+    resumeInput.focus();
+  });
+  viewReport.querySelectorAll('.copy-smoke').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tech = btn.dataset.tech;
+      const item = arr(d.smoke_test_qualifiers).find(s => (s.technology || '') === tech);
+      if (!item) return;
+      const text = 'Smoke test — ' + tech + '\n' +
+        arr(item.smoke_test_questions).filter(has).map((q, i) => `  ${i + 1}. ${q}`).join('\n') + '\n';
+      copyText(text, 'Questions for ' + tech + ' copied');
+    });
+  });
+
+  // scroll-spy for the rail
+  const links = Array.from(viewReport.querySelectorAll('.rail a'));
+  const sections = links
+    .map(l => document.getElementById(l.dataset.target))
+    .filter(Boolean);
+  if ('IntersectionObserver' in window && sections.length) {
+    const spy = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        links.forEach(l =>
+          l.classList.toggle('is-current', l.dataset.target === entry.target.id));
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => spy.observe(s));
+  }
+}
+
+/* ================================================================
+   Sample report — fabricated demo data, no real person.
+   ================================================================ */
+
+const SAMPLE_REPORT = {
+  candidate_name: "Jordan Alvarez (sample)",
+  overall_cohesion_score: 7,
+  screening_verdict: "PROCEED_WITH_CALIBRATION",
+  executive_narration: "Eleven years of backend and data-infrastructure work across three companies, with a coherent center of gravity: PostgreSQL, Kafka, and AWS operational ownership that deepens with each role. The resume reads like an engineer who has actually carried a pager — deadlock fixes, partition rebalancing, a schema migration executed against a live billing system. The soft spots are the frontend claims, which read as proximity rather than practice, and one large scale claim (2B events/day) that arrives without the observability or cost detail that usually accompanies lived experience at that volume. The AI story is one layer deep: disciplined use of coding assistants is evidenced, but the claimed LLM-powered ticket summarizer carries no evaluation, guardrail, or cost fingerprints. Leadership is real but local: mentoring and runbooks, not organizational influence. A calibrated technical screen should confirm depth quickly.",
+  heuristic_narratives: [
+    {
+      heuristic: "ACTIVE_MASTERY_VS_PASSIVE_ENCOUNTER",
+      plain_english_summary: "Database and streaming claims come with active-engineering fingerprints — tuning, deadlock diagnosis, partition strategy. The React and Kubernetes mentions sit in environment lists with no action verbs attached.",
+      why_it_matters: "Interview time should go to confirming the strong core, not re-litigating it; the frontend claims can be discounted without a question.",
+      source_resume_signals: ["diagnosed and fixed a lock-ordering deadlock in the billing writer", "environment: React, Kubernetes, Terraform"],
+      confidence: "HIGH"
+    },
+    {
+      heuristic: "TECHNOLOGY_SMOKE_TEST_GENERATION",
+      plain_english_summary: "Four technologies justify advanced questions: PostgreSQL, Kafka, AWS (RDS/ECS), and Python. Each has enough claimed production surface to make thirty-second failure-mode questions fair.",
+      why_it_matters: "Focused smoke tests let a 20-minute screen separate production depth from tutorial familiarity.",
+      source_resume_signals: ["re-partitioned Kafka topics to eliminate consumer-lag hotspots", "cut RDS storage costs 40% by archiving cold partitions"],
+      confidence: "HIGH"
+    },
+    {
+      heuristic: "INDIVIDUAL_OWNERSHIP_VS_TEAM_LEVEL_ATTRIBUTION",
+      plain_english_summary: "Most bullets anchor Jordan to a specific decision or artifact. Two of the bigger claims — the event pipeline and the microservice split — use 'we' and 'the team' without naming a personal slice.",
+      why_it_matters: "The largest-scale items are exactly the ones with the weakest personal attribution; those need one clarifying question each.",
+      source_resume_signals: ["owned the billing ingestion service end to end", "we migrated the monolith to services over 18 months"],
+      confidence: "MEDIUM"
+    },
+    {
+      heuristic: "TECH_CLUSTERING_SMELL_TEST",
+      plain_english_summary: "The stack clusters plausibly around a Python/Postgres/Kafka/AWS data platform. One medium flag: '2B events/day' appears with no mention of monitoring, alerting, or cost management.",
+      why_it_matters: "Scale claims without operational detail are the most common form of resume inflation; one pointed question resolves it.",
+      source_resume_signals: ["processing 2B events/day", "no observability tooling named anywhere"],
+      confidence: "MEDIUM"
+    },
+    {
+      heuristic: "LEADERSHIP_MENTORSHIP_AND_HUMAN_LEVERAGE",
+      plain_english_summary: "Consistent team-scope enablement: onboarding two juniors, writing the runbooks the on-call rotation still uses, leading schema reviews. No visible influence beyond the immediate team.",
+      why_it_matters: "Right-sized expectations: a strong senior IC and mentor, not evidence of cross-team or organizational leadership.",
+      source_resume_signals: ["mentored two junior engineers to independent on-call", "wrote the incident runbooks still in use"],
+      confidence: "HIGH"
+    },
+    {
+      heuristic: "INNOVATION_AND_ORIGINATION",
+      plain_english_summary: "One genuine origination with adoption evidence: an internal schema-migration harness other teams picked up. The rest is competent execution and extension, which the resume doesn't dress up as more.",
+      why_it_matters: "Passes the adoption test once — enough to probe, not enough to assume an originator profile.",
+      source_resume_signals: ["built a zero-downtime migration harness, adopted by 4 teams"],
+      confidence: "MEDIUM"
+    },
+    {
+      heuristic: "AI_FLUENCY_AND_POSTURE",
+      plain_english_summary: "Disciplined AI-assisted engineering is evidenced — generated code goes through the same review gate as human code, and Jordan wrote the team's guidance for it. The 'LLM-powered ticket summarizer' is claimed at product depth but shows zero production fingerprints: no evals, no hallucination handling, no cost or latency detail. 'GenAI' in the skills list is riding on that single thin bullet.",
+      why_it_matters: "The gap between claimed AI altitude (product engineering) and evidenced altitude (assisted engineering) is exactly where 2026 resumes inflate; two pointed questions resolve it in the first ten minutes.",
+      source_resume_signals: ["built an LLM-powered support-ticket summarizer", "'GenAI' in the skills list", "reviews all AI-generated code before merge"],
+      confidence: "MEDIUM"
+    },
+    {
+      heuristic: "NON_SKEPTIC_COUNTERBALANCE",
+      plain_english_summary: "The resume is terse and metric-forward rather than buzzword-heavy; tenure is stable (3-5 years per role) and scope grows within each company. These are structurally hard signals to fake.",
+      why_it_matters: "The candidate's floor is high: even if the weakest claims wash out, a solid senior data-infrastructure engineer remains.",
+      source_resume_signals: ["3-5 year tenures with promotions in role", "cut p99 write latency from 900ms to 120ms"],
+      confidence: "HIGH"
+    }
+  ],
+  claimed_technical_skills: ["Python", "PostgreSQL", "Kafka", "AWS", "Terraform", "Docker", "Kubernetes", "React", "Redis", "Airflow", "GenAI", "GitHub Copilot"],
+  smoke_test_qualifiers: [
+    {
+      technology: "PostgreSQL",
+      claimed_context: "Five years operating the billing database: schema migrations against live traffic, deadlock diagnosis, partitioning and archival for cost control.",
+      smoke_test_questions: [
+        "You need to add a NOT NULL column to a 500M-row table without blocking writes — walk me through it.",
+        "What actually causes a deadlock in Postgres, and what do you read to find the two offending transactions?",
+        "When does autovacuum fall behind, and what are the first two knobs you reach for?"
+      ],
+      expected_mastery_signals: [
+        "ADD COLUMN with DEFAULT is metadata-only on modern Postgres; NOT NULL needs a validate step or a constraint trick",
+        "Lock ordering, pg_locks / log_lock_waits, deferrable ordering fixes",
+        "Dead tuple accumulation vs vacuum cost limits; autovacuum_vacuum_cost_limit, per-table thresholds"
+      ]
+    },
+    {
+      technology: "Kafka",
+      claimed_context: "Re-partitioned topics to fix consumer-lag hotspots on a claimed 2B events/day pipeline.",
+      smoke_test_questions: [
+        "A single partition is hot and lagging — what are the possible causes and which can you fix without repartitioning?",
+        "What do you give up when you increase a topic's partition count on a live system?"
+      ],
+      expected_mastery_signals: [
+        "Key skew vs slow consumer vs broker imbalance; consumer-side parallelism limits",
+        "Key-to-partition mapping breaks ordering for existing keys; consumer group rebalancing cost"
+      ]
+    },
+    {
+      technology: "AWS (RDS / ECS)",
+      claimed_context: "Owned RDS cost reduction and service deployment on ECS across two roles.",
+      smoke_test_questions: [
+        "Your RDS instance hits 100% CPU at 3am with no deploy in sight — first three things you look at?",
+        "When would you pick ECS over Lambda for a stream consumer, concretely?"
+      ],
+      expected_mastery_signals: [
+        "Performance Insights / pg_stat_statements, connection storms, vacuum or plan flips",
+        "Long-lived connections, sustained throughput economics, cold-start and duration limits"
+      ]
+    },
+    {
+      technology: "Python",
+      claimed_context: "Primary language across all three roles; wrote the ingestion services and the migration harness.",
+      smoke_test_questions: [
+        "Where does the GIL actually cost you in a network-bound ingestion service — and where doesn't it?",
+        "How do you keep a long-running worker's memory flat when it processes large batches?"
+      ],
+      expected_mastery_signals: [
+        "I/O releases the GIL; CPU-bound serialization is the real chokepoint; multiprocessing vs asyncio tradeoff",
+        "Generator pipelines, explicit del / gc behavior, object churn vs arena fragmentation"
+      ]
+    }
+  ],
+  exposure_vs_mastery_analysis: [
+    {
+      technology: "PostgreSQL",
+      classification: "PROBABLE_MASTERY",
+      evidence_rationale: "Deadlock diagnosis, live-traffic migrations, and partition archival are operations you only describe this specifically after doing them.",
+      exposure_smell_flag: false,
+      calibration_questions: ["What's the riskiest migration you've run, and what was your rollback plan?"]
+    },
+    {
+      technology: "Kafka",
+      classification: "PROBABLE_MASTERY",
+      evidence_rationale: "Partition rebalancing and consumer-lag work described with cause-and-effect specificity.",
+      exposure_smell_flag: false,
+      calibration_questions: ["What did the lag graph look like before and after, and what was the actual root cause?"]
+    },
+    {
+      technology: "React",
+      classification: "EXPOSURE_ONLY",
+      evidence_rationale: "Appears only in an environment list; no component, state, or build work described anywhere.",
+      exposure_smell_flag: true,
+      calibration_questions: ["Describe a React component you personally wrote and what state it managed."]
+    },
+    {
+      technology: "Kubernetes",
+      classification: "EXPOSURE_ONLY",
+      evidence_rationale: "Named alongside Docker and Terraform with no deployment, scaling, or debugging action attached; the actual deploy target described is ECS.",
+      exposure_smell_flag: true,
+      calibration_questions: ["Walk me through debugging a pod that restarts every 90 seconds."]
+    }
+  ],
+  role_attribution_analysis: [
+    {
+      scope: "Billing ingestion service (Meridian Data)",
+      technology: "Python / PostgreSQL",
+      attribution_level: "DIRECT_OWNER",
+      resume_wording_signal: "owned the billing ingestion service end to end, carried its pager",
+      evidence_rationale: "Ownership verb plus operational burden plus a named artifact — the strongest attribution pattern in the resume.",
+      ownership_indicators: ["end-to-end ownership claim", "on-call burden named", "latency metric tied to their work"],
+      ambiguity_flags: [],
+      calibration_question: "Who else worked on the ingestion service, and what part was yours alone?"
+    },
+    {
+      scope: "Monolith-to-services migration (Meridian Data)",
+      technology: "N/A",
+      attribution_level: "TEAM_LEVEL_ONLY",
+      resume_wording_signal: "we migrated the monolith to services over 18 months",
+      evidence_rationale: "Team pronoun with no personal slice named; the largest architectural claim on the resume has the weakest anchoring.",
+      ownership_indicators: [],
+      ambiguity_flags: ["no personal deliverable named", "18-month timeline with no stated role in it"],
+      calibration_question: "Of the services split out, which did you personally design or extract, and what went wrong?"
+    },
+    {
+      scope: "Event pipeline (Northgate)",
+      technology: "Kafka",
+      attribution_level: "DIRECT_CONTRIBUTOR",
+      resume_wording_signal: "re-partitioned Kafka topics to eliminate consumer-lag hotspots",
+      evidence_rationale: "Specific personal action on a shared system — clearly hands-on, though the pipeline itself is a team asset.",
+      ownership_indicators: ["specific corrective action described"],
+      ambiguity_flags: ["pipeline scale claim (2B events/day) is the team's, not necessarily their slice"],
+      calibration_question: "What was your slice of the 2B events/day pipeline — which components did you own?"
+    }
+  ],
+  leadership_and_enablement_analysis: {
+    leadership_signal_strength: "MODERATE",
+    leadership_modes: ["PEOPLE_MENTORSHIP", "TEAM_ENABLEMENT", "INCIDENT_OR_OPERATIONAL_LEADERSHIP"],
+    influence_scope: "TEAM",
+    evidence: [
+      {
+        signal: "Mentoring to independence",
+        resume_evidence: "mentored two junior engineers to independent on-call rotation",
+        interpretation: "A concrete outcome (on-call independence), not just 'mentored juniors' — this is verifiable enablement."
+      },
+      {
+        signal: "Durable operational documentation",
+        resume_evidence: "wrote the incident runbooks still in use by the on-call rotation",
+        interpretation: "Artifacts that outlive the author raise team capability; 'still in use' is an adoption claim worth confirming."
+      }
+    ],
+    frontline_orientation: "TEAM_INTERNAL_ONLY",
+    risk_notes: ["No cross-team or organizational influence visible; leadership ceiling on this evidence is senior-IC-plus-mentor."],
+    calibration_questions: ["Tell me about a time you changed how a team outside your own worked."]
+  },
+  innovation_and_origination_analysis: {
+    innovation_signal_strength: "MODERATE",
+    innovation_modes: ["TOOLING_OR_PROCESS_INTRODUCTION"],
+    evidence: [
+      {
+        signal: "Internal tool with cross-team adoption",
+        resume_evidence: "built a zero-downtime schema-migration harness, adopted by 4 teams",
+        interpretation: "Passes the adoption test: a named artifact plus quantified uptake beyond the author's own team."
+      }
+    ],
+    risk_notes: ["Single data point; everything else is competent extension of existing systems."],
+    calibration_questions: ["How did the other four teams find out about the migration harness, and what did you change for them?"]
+  },
+  ai_fluency_analysis: {
+    highest_evidenced_mode: "AI_ASSISTED_ENGINEERING",
+    posture_summary: "The AI posture is one honest layer with an inflated layer on top. Assisted engineering is real: generated code is held behind the same review gate as human code, and Jordan authored the team's guidance for AI-assisted changes — a named artifact. Above that, the resume wants product-engineering credit for an 'LLM-powered support-ticket summarizer' that shows no evaluation, no hallucination or injection handling, no cost or latency awareness, and no model versioning. Read skeptically, that is a completion call with a UI. 'GenAI' in the skills list rests entirely on that bullet.",
+    mode_assessments: [
+      {
+        mode: "AI_ASSISTED_ENGINEERING",
+        verdict: "EVIDENCED",
+        resume_evidence: "reviews all AI-generated code before merge; wrote the team's guidance for AI-assisted changes",
+        skeptical_reading: "Even read coldly, this is a stated verification discipline plus a durable artifact other people use — the two things that separate practice from tool tourism.",
+        inflation_flags: []
+      },
+      {
+        mode: "AI_PRODUCT_ENGINEERING",
+        verdict: "CLAIMED_ONLY",
+        resume_evidence: "built an LLM-powered support-ticket summarizer for the support team",
+        skeptical_reading: "No evals, no guardrails, no fallback path, no cost figure, no model or prompt versioning. Until proven otherwise this is wrapper inflation: an API integration presented as a product system.",
+        inflation_flags: ["Wrapper inflation — no retrieval, guardrail, or evaluation detail", "Metric-free outcome — no accuracy or adoption number attached"]
+      },
+      {
+        mode: "PROMPT_ENGINEERING",
+        verdict: "ABSENT",
+        resume_evidence: "No prompt artifacts, schemas, or evaluation loops named anywhere — notable given the summarizer claim implies prompt work happened.",
+        skeptical_reading: "If the summarizer's prompts were engineered rather than improvised, the resume shows no trace of it.",
+        inflation_flags: []
+      },
+      {
+        mode: "AI_INFRASTRUCTURE_AND_OPERATIONS",
+        verdict: "ABSENT",
+        resume_evidence: "Nothing on evals, routing, serving, or AI observability — consistent with the rest of the resume's otherwise strong ops story stopping short of AI.",
+        skeptical_reading: "An engineer with genuine production-AI operational burden would show the same pager fingerprints here that they show for Postgres. They don't.",
+        inflation_flags: []
+      }
+    ],
+    production_fingerprints_found: [
+      "Stated review discipline for AI-generated code",
+      "A durable team artifact (the AI-assisted-changes guidance)"
+    ],
+    production_fingerprints_missing: [
+      "Any evaluation of summarizer output quality",
+      "Hallucination or prompt-injection handling",
+      "Cost-per-request or latency awareness",
+      "Model or prompt version management"
+    ],
+    judgment_signals: [
+      "Keeps AI-generated code behind the same review gate as human code — treats model output as untrusted by default"
+    ],
+    risk_notes: [
+      "'GenAI' sits in the skills list carried by a single unevidenced feature bullet — classic buzz stuffing shape",
+      "The claimed product altitude exceeds the evidenced altitude by exactly one rung, the most common inflation pattern of 2026 resumes"
+    ],
+    calibration_questions: [
+      "How do you know a prompt change to the ticket summarizer didn't make it worse — what did you measure, and against what set?",
+      "Walk me through what happens when the summarizer fabricates a customer detail. Where does that get caught, and who noticed it first?",
+      "What did the summarizer cost per thousand tickets, and did anyone ever ask you to bring that number down?"
+    ]
+  },
+  identified_ecosystems: ["Python data infrastructure", "PostgreSQL operations", "Kafka streaming", "AWS (RDS/ECS)"],
+  impact_to_activity_ratio: {
+    metric_driven_bullets_count: 14,
+    passive_activity_bullets_count: 9,
+    verdict: "BALANCED"
+  },
+  scale_plausibility: {
+    status: "SUSPECT_EXAGGERATION",
+    notes: "The 2B events/day claim arrives with no observability, cost, or team-size context. Not implausible for the company, but the resume shows no fingerprints of operating at that volume — treat as team-scale until calibrated."
+  },
+  autodidactic_signals: [
+    "Maintains a small open-source Postgres migration linter (240 stars)",
+    "Wrote a three-part internal series on Kafka consumer tuning, later published on the company blog"
+  ],
+  scope_escalation_analysis: [
+    {
+      company: "Meridian Data",
+      tenure: "2021 - present (4 yrs)",
+      did_ownership_grow: true,
+      evidence: "Entered as senior engineer on the billing team; by year two owned the ingestion service end to end and led schema reviews for the group."
+    },
+    {
+      company: "Northgate Systems",
+      tenure: "2017 - 2021 (4 yrs)",
+      did_ownership_grow: true,
+      evidence: "Hired as backend engineer; promoted once; moved from feature work to owning the event pipeline's consumer fleet."
+    },
+    {
+      company: "Coretta Software",
+      tenure: "2014 - 2017 (3 yrs)",
+      did_ownership_grow: false,
+      evidence: "Consistent mid-level feature delivery; no visible scope change across the tenure."
+    }
+  ],
+  smell_test_results: [
+    {
+      type: "INFRA_DISCONNECT",
+      severity: "MEDIUM",
+      location: "Northgate Systems — event pipeline",
+      description: "Claims a 2B events/day pipeline but names no monitoring, alerting, on-call, or cost-management practice for it. Operational scale usually leaves those fingerprints.",
+      calibration_question: "At 2B events/day, what did your alerting catch that your dashboards missed?"
+    },
+    {
+      type: "AI_BUZZ_STUFFING",
+      severity: "MEDIUM",
+      location: "Skills section / Meridian Data",
+      description: "'GenAI' is claimed as a competency on the strength of one bullet — a ticket summarizer with no evaluation, guardrail, cost, or versioning detail. The claim's altitude exceeds its evidence by a full rung.",
+      calibration_question: "Beyond the ticket summarizer, what's the most consequential thing you've built or operated with an LLM — and how did you know it worked?"
+    },
+    {
+      type: "TOOL_STUFFING",
+      severity: "LOW",
+      location: "Skills section",
+      description: "Docker, Terraform, and Kubernetes are listed as competencies but never appear in any accomplishment bullet.",
+      calibration_question: "Pick one of Docker, Terraform, or Kubernetes and describe the last real problem you solved with it."
+    }
+  ],
+  structural_green_flags: [
+    "Stable 3-5 year tenures with in-role promotion at two of three companies",
+    "Metrics are specific and small enough to be real (900ms to 120ms p99, 40% storage cost cut)",
+    "Terse, artifact-centered writing — accomplishments named by system, not by adjective"
+  ],
+  evidence_backed_strengths: [
+    {
+      signal: "Genuine operational ownership of a revenue-path service",
+      resume_evidence: "owned the billing ingestion service end to end, carried its pager, cut p99 write latency from 900ms to 120ms",
+      why_it_matters: "Billing-path ownership with a pager is the strongest kind of accountability evidence a resume can carry — hard to fake, expensive to earn."
+    },
+    {
+      signal: "Tooling that other teams chose to adopt",
+      resume_evidence: "zero-downtime schema-migration harness, adopted by 4 teams",
+      why_it_matters: "Voluntary adoption by peers is external validation of both code quality and problem selection."
+    }
+  ]
+};
+</script>
+</body>
+</html>
